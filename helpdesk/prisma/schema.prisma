@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  // engineType = "binary"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PROJECT_MANAGER
+  SUPPORT
+  CLIENT
+}
+
+enum NotificationType {
+  NEW_TICKET
+  NEW_MESSAGE
+}
+
+
+model User {
+  id               Int      @id @default(autoincrement())
+  name             String
+  email            String   @unique
+  password         String
+  role             UserRole
+  additionalRoles  UserRoleAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  applications Application[]
+  assignedTickets Ticket[] @relation("AssignedTickets")
+  notifications Notification[]
+}
+
+model UserRoleAssignment {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  role   UserRole
+
+  user   User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, role])
+}
+
+model Application {
+  id               Int      @id @default(autoincrement())
+  name             String
+  apiKey           String   @unique
+  projectManagerId Int
+
+  projectManager   User     @relation(fields: [projectManagerId], references: [id])
+  clients          Client[]
+  tickets          Ticket[]
+
+  createdAt        DateTime @default(now())
+}
+
+model Client {
+  id            Int      @id @default(autoincrement())
+  externalId    String
+  name          String?
+  email         String?
+  applicationId Int
+
+  application   Application @relation(fields: [applicationId], references: [id])
+  tickets       Ticket[]
+
+  createdAt     DateTime @default(now())
+}
+
+model Ticket {
+  id            Int      @id @default(autoincrement())
+  subject       String
+  status        String
+  priority      String
+  applicationId Int
+  clientId      Int
+  assignedTo    Int?
+  issueTypeId   Int
+
+  application   Application @relation(fields: [applicationId], references: [id])
+  client        Client      @relation(fields: [clientId], references: [id])
+  issueType     IssueType   @relation(fields: [issueTypeId], references: [id])
+  assignedUser  User?       @relation("AssignedTickets", fields: [assignedTo], references: [id])
+
+  messages      Message[]
+  notifications Notification[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model IssueType {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+
+  tickets     Ticket[]
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  senderType String
+  senderId   Int?
+  content    String
+
+  fileUrl      String?
+  fileName     String?
+  fileType     String?
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  attachments Attachment[]
+
+  createdAt  DateTime @default(now())
+}
+
+model Attachment {
+  id        Int      @id @default(autoincrement())
+  messageId Int
+  fileUrl   String
+  fileType  String
+
+  message   Message  @relation(fields: [messageId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ticketId  Int?
+  type      NotificationType
+  isRead    Boolean  @default(false)
+
+  user      User     @relation(fields: [userId], references: [id])
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
+}
