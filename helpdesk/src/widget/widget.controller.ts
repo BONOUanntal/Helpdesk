@@ -1,8 +1,45 @@
-import { Controller, Post, Get, Body, Param, Query, UploadedFile,
-  UseInterceptors } from '@nestjs/common'
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common'
+
 import { WidgetService } from './widget.service'
+
 import { FileInterceptor } from '@nestjs/platform-express'
+
 import { diskStorage } from 'multer'
+import { extname } from 'path'
+
+const storage = diskStorage({
+  destination: './uploads',
+
+  filename: (
+    req,
+    file,
+    cb,
+  ) => {
+    const unique =
+      Date.now() +
+      '-' +
+      Math.round(
+        Math.random() * 1e9,
+      )
+
+    cb(
+      null,
+      `${unique}${extname(
+        file.originalname,
+      )}`,
+    )
+  },
+})
 
 @Controller('widget')
 export class WidgetController {
@@ -57,27 +94,64 @@ export class WidgetController {
   @Post('tickets/:ticketId/upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads',
+      storage,
 
-        filename: (req, file, cb) => {
-          const unique = `${Date.now()}-${file.originalname}`
-          cb(null, unique)
-        },
-      }),
+      limits: {
+        fileSize: 2 * 1024 * 1024,
+      },
+
+      fileFilter: (
+        req,
+        file,
+        cb,
+      ) => {
+        const allowed = [
+          '.pdf',
+          '.png',
+          '.jpg',
+          '.jpeg',
+          '.txt',
+          '.docx',
+          '.xlsx',
+          '.zip',
+        ]
+
+        const ext =
+          extname(
+            file.originalname,
+          ).toLowerCase()
+
+        if (
+          !allowed.includes(ext)
+        ) {
+          return cb(
+            new Error(
+              'Type de fichier interdit',
+            ),
+            false,
+          )
+        }
+
+        cb(null, true)
+      },
     }),
   )
   uploadFile(
     @Param('ticketId') ticketId: string,
-
     @UploadedFile() file: Express.Multer.File,
-
-    @Body() body: any,
+    @Body() body,
   ) {
+    if (!file) {
+      throw new BadRequestException(
+        'Fichier invalide ou supérieur à 2MB',
+      )
+    }
+
     return this.widgetService.uploadFile(
       Number(ticketId),
       file,
-      body,
+      body.clientEmail,
+      body.apiKey,
     )
   }
 }

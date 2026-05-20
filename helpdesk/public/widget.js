@@ -398,7 +398,7 @@
 
         <input
           type="file"
-          id="hd-chat-file"
+          id="hd-file-input"
           style="display:none"
         />
 
@@ -490,11 +490,11 @@
   const issueTypeEl =
     document.getElementById('hd-issue-type')
 
+  const fileInput =
+  document.getElementById('hd-file-input')
+
   const fileBtn =
     document.getElementById('hd-file-btn')
-
-  const fileInput =
-    document.getElementById('hd-chat-file')
 
   // ─────────────────────────────────────────
   // Storage
@@ -874,6 +874,79 @@
     sendBtn.disabled = false
   }
 
+  async function handleFileUpload(event) {
+    if (!currentTicketId) {
+      alert(
+        "Veuillez ouvrir une conversation avant d'envoyer un fichier."
+      )
+
+      event.target.value = ''
+
+      return
+    }
+
+    const file = event.target.files[0]
+
+    if (!file) return
+
+    // limite 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      alert(
+        'Le fichier dépasse la limite de 2MB.'
+      )
+
+      event.target.value = ''
+
+      return
+    }
+
+    const formData = new FormData()
+
+    formData.append('file', file)
+
+    formData.append(
+      'clientEmail',
+      CLIENT_EMAIL
+    )
+
+    formData.append(
+      'apiKey',
+      API_KEY
+    )
+
+    try {
+      const res = await fetch(
+        `${HELPDESK_URL}/widget/tickets/${currentTicketId}/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert(
+          data.message ||
+          "Erreur lors de l'envoi"
+        )
+
+        return
+      }
+
+      await fetchMessages()
+
+      // reset input
+      event.target.value = ''
+    } catch (e) {
+      console.error(e)
+
+      alert(
+        "Impossible d'envoyer le fichier"
+      )
+    }
+  }
+
   // ─────────────────────────────────────────
   // Upload file
   // ─────────────────────────────────────────
@@ -897,7 +970,7 @@
 
     try {
       await fetch(
-        `${HELPDESK_URL}/widget/ticket/${currentTicketId}/upload`,
+        `${HELPDESK_URL}/widget/tickets/${currentTicketId}/upload`,
         {
           method: 'POST',
           body: formData,
@@ -961,6 +1034,18 @@
     sendMessage
   )
 
+  fileBtn.addEventListener(
+    'click',
+    () => {
+      fileInput.click()
+    }
+  )
+
+  fileInput.addEventListener(
+    'change',
+    handleFileUpload
+  )
+
   inputEl.addEventListener(
     'keydown',
     e => {
@@ -975,20 +1060,6 @@
     'click',
     () => {
       fileInput.click()
-    }
-  )
-
-  fileInput.addEventListener(
-    'change',
-    async e => {
-      const file =
-        e.target.files[0]
-
-      if (!file) return
-
-      await uploadFile(file)
-
-      fileInput.value = ''
     }
   )
 

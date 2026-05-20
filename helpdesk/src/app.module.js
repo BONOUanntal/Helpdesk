@@ -5,6 +5,7 @@ import { ClientsModule } from './clients/clients.module';
 import { MessagesModule } from './messages/messages.module';
 import { IssueTypesModule } from './issue-types/issue-types.module';
 import { NotificationsController } from './notifications/notifications.controller';
+import { MailModule } from './mail/mail.module';
 import { WidgetModule } from './widget/widget.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationsService } from './notifications/notifications.service';

@@ -11,13 +11,22 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WidgetController = void 0;
 const common_1 = require("@nestjs/common");
 const widget_service_1 = require("./widget.service");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
+const path_1 = require("path");
+const storage = (0, multer_1.diskStorage)({
+    destination: './uploads',
+    filename: (req, file, cb) => {
+        const unique = Date.now() +
+            '-' +
+            Math.round(Math.random() * 1e9);
+        cb(null, `${unique}${(0, path_1.extname)(file.originalname)}`);
+    },
+});
 let WidgetController = class WidgetController {
     widgetService;
     constructor(widgetService) {
@@ -39,7 +48,10 @@ let WidgetController = class WidgetController {
         return this.widgetService.getActiveTicket(clientEmail, apiKey);
     }
     uploadFile(ticketId, file, body) {
-        return this.widgetService.uploadFile(Number(ticketId), file, body);
+        if (!file) {
+            throw new common_1.BadRequestException('Fichier invalide ou supérieur à 2MB');
+        }
+        return this.widgetService.uploadFile(Number(ticketId), file, body.clientEmail, body.apiKey);
     }
 };
 exports.WidgetController = WidgetController;
@@ -84,19 +96,33 @@ __decorate([
 __decorate([
     (0, common_1.Post)('tickets/:ticketId/upload'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
-        storage: (0, multer_1.diskStorage)({
-            destination: './uploads',
-            filename: (req, file, cb) => {
-                const unique = `${Date.now()}-${file.originalname}`;
-                cb(null, unique);
-            },
-        }),
+        storage,
+        limits: {
+            fileSize: 2 * 1024 * 1024,
+        },
+        fileFilter: (req, file, cb) => {
+            const allowed = [
+                '.pdf',
+                '.png',
+                '.jpg',
+                '.jpeg',
+                '.txt',
+                '.docx',
+                '.xlsx',
+                '.zip',
+            ];
+            const ext = (0, path_1.extname)(file.originalname).toLowerCase();
+            if (!allowed.includes(ext)) {
+                return cb(new Error('Type de fichier interdit'), false);
+            }
+            cb(null, true);
+        },
     })),
     __param(0, (0, common_1.Param)('ticketId')),
     __param(1, (0, common_1.UploadedFile)()),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_b = typeof Express !== "undefined" && (_a = Express.Multer) !== void 0 && _a.File) === "function" ? _b : Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], WidgetController.prototype, "uploadFile", null);
 exports.WidgetController = WidgetController = __decorate([

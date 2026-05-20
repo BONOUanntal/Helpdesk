@@ -8,25 +8,25 @@ export declare class TicketsService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     }>;
     assign(ticketId: number, supportId: number, requesterId: number): Promise<{
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     }>;
     findOne(id: number, userId: number): Promise<{
         application: {
@@ -53,37 +53,37 @@ export declare class TicketsService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     }>;
     update(id: number, data: UpdateTicketDto, userId: number, role: string): Promise<{
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     }>;
     remove(id: number, userId: number): Promise<{
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     }>;
     findAll(userId: number, role: string, clientId?: number): Promise<({
         application: {
@@ -115,12 +115,12 @@ export declare class TicketsService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        applicationId: number;
         subject: string;
-        status: string;
         priority: string;
+        issueTypeId: number;
+        status: string;
+        applicationId: number;
         clientId: number;
         assignedTo: number | null;
-        issueTypeId: number;
     })[]>;
 }

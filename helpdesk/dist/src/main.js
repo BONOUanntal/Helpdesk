@@ -35,16 +35,25 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
+const common_1 = require("@nestjs/common");
 const path_1 = require("path");
 const express = __importStar(require("express"));
+const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
-        origin: '*',
+        origin: true,
+        credentials: true,
     });
-    app.useStaticAssets((0, path_1.join)(process.cwd(), 'public'));
-    app.use('/uploads', express.static((0, path_1.join)(__dirname, '..', 'uploads')));
+    app.useGlobalPipes(new common_1.ValidationPipe({
+        whitelist: true,
+        transform: true,
+    }));
+    app.use(express.static((0, path_1.join)(process.cwd(), 'public')));
+    app.use('/uploads', express.static((0, path_1.join)(process.cwd(), 'uploads')));
+    app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
     await app.listen(3000);
+    console.log('Server running on http://localhost:3000');
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

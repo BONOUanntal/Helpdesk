@@ -12,14 +12,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WidgetService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const mail_service_1 = require("../mail/mail.service");
 let WidgetService = class WidgetService {
     prisma;
-    constructor(prisma) {
+    mailService;
+    constructor(prisma, mailService) {
         this.prisma = prisma;
+        this.mailService = mailService;
     }
     async verifyApiKey(apiKey) {
         const application = await this.prisma.application.findUnique({
             where: { apiKey },
+            include: {
+                projectManager: true,
+            },
         });
         if (!application) {
             throw new common_1.UnauthorizedException('API key invalide');
@@ -85,6 +91,22 @@ let WidgetService = class WidgetService {
                 type: 'NEW_TICKET',
             },
         });
+        if (application.projectManager?.email) {
+            try {
+                await this.mailService.sendNewTicketEmail(application.projectManager.email, {
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                    clientEmail: client.email ?? '',
+                    clientName: client.name ?? undefined,
+                    priority: ticket.priority,
+                    appName: application.name,
+                });
+                console.log('✅ Email envoyé au PM');
+            }
+            catch (error) {
+                console.error('❌ Erreur email PM:', error);
+            }
+        }
         return {
             success: true,
             ticketId: ticket.id,
@@ -131,7 +153,13 @@ let WidgetService = class WidgetService {
                 },
             },
             include: {
-                application: true,
+                application: {
+                    include: {
+                        projectManager: true,
+                    },
+                },
+                assignedUser: true,
+                client: true,
             },
         });
         if (!ticket) {
@@ -151,6 +179,54 @@ let WidgetService = class WidgetService {
                 content: body.content,
             },
         });
+        if (ticket.application
+            ?.projectManager
+            ?.email) {
+            try {
+                await this.mailService
+                    .sendNewMessageEmail(ticket.application
+                    .projectManager
+                    .email, {
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                    clientName: ticket.client
+                        ?.name ??
+                        undefined,
+                    clientEmail: ticket.client
+                        ?.email ??
+                        '',
+                    message: body.content,
+                    appName: ticket.application
+                        .name,
+                });
+            }
+            catch (error) {
+                console.error('Erreur email PM', error);
+            }
+        }
+        if (ticket.assignedUser
+            ?.email) {
+            try {
+                await this.mailService
+                    .sendNewMessageEmail(ticket.assignedUser
+                    .email, {
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                    clientName: ticket.client
+                        ?.name ??
+                        undefined,
+                    clientEmail: ticket.client
+                        ?.email ??
+                        '',
+                    message: body.content,
+                    appName: ticket.application
+                        .name,
+                });
+            }
+            catch (error) {
+                console.error('Erreur email support', error);
+            }
+        }
         await this.prisma.notification.create({
             data: {
                 userId: application.projectManagerId,
@@ -195,42 +271,111 @@ let WidgetService = class WidgetService {
             ticketId: ticket.id,
         };
     }
-    async uploadFile(ticketId, file, body) {
-        const application = await this.verifyApiKey(body.apiKey);
+    async uploadFile(ticketId, file, clientEmail, apiKey) {
+        const application = await this.verifyApiKey(apiKey);
         const ticket = await this.prisma.ticket.findFirst({
             where: {
                 id: ticketId,
                 applicationId: application.id,
                 client: {
-                    email: body.clientEmail,
+                    email: clientEmail,
                 },
+            },
+            include: {
+                application: {
+                    include: {
+                        projectManager: true,
+                    },
+                },
+                assignedUser: true,
+                client: true,
             },
         });
         if (!ticket) {
             throw new common_1.NotFoundException('Ticket introuvable');
         }
-        const client = await this.prisma.client.findFirst({
-            where: {
-                email: body.clientEmail,
-                applicationId: application.id,
-            },
-        });
-        return this.prisma.message.create({
+        const message = await this.prisma.message.create({
             data: {
                 ticketId,
-                senderId: client?.id ?? null,
                 senderType: 'CLIENT',
-                content: null,
+                content: file.originalname,
                 fileUrl: `/uploads/${file.filename}`,
                 fileName: file.originalname,
-                fileType: file.mimetype,
             },
         });
+        if (ticket.application
+            ?.projectManager
+            ?.email) {
+            try {
+                await this.mailService
+                    .sendNewMessageEmail(ticket.application
+                    .projectManager
+                    .email, {
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                    clientName: ticket.client
+                        ?.name ??
+                        undefined,
+                    clientEmail: ticket.client
+                        ?.email ??
+                        '',
+                    message: `📎 Fichier envoyé : ${file.originalname}`,
+                    appName: ticket.application
+                        .name,
+                });
+            }
+            catch (error) {
+                console.error('Erreur email PM', error);
+            }
+        }
+        if (ticket.assignedUser
+            ?.email) {
+            try {
+                await this.mailService
+                    .sendNewMessageEmail(ticket.assignedUser
+                    .email, {
+                    ticketId: ticket.id,
+                    subject: ticket.subject,
+                    clientName: ticket.client
+                        ?.name ??
+                        undefined,
+                    clientEmail: ticket.client
+                        ?.email ??
+                        '',
+                    message: `📎 Fichier envoyé : ${file.originalname}`,
+                    appName: ticket.application
+                        .name,
+                });
+            }
+            catch (error) {
+                console.error('Erreur email support', error);
+            }
+        }
+        await this.prisma.notification.create({
+            data: {
+                userId: application.projectManagerId,
+                ticketId,
+                type: 'NEW_MESSAGE',
+            },
+        });
+        if (ticket.assignedTo &&
+            ticket.assignedTo !==
+                application.projectManagerId) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: ticket.assignedTo,
+                    ticketId,
+                    type: 'NEW_MESSAGE',
+                },
+            });
+        }
+        return message;
     }
 };
 exports.WidgetService = WidgetService;
 exports.WidgetService = WidgetService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        mail_service_1.MailService])
 ], WidgetService);
 //# sourceMappingURL=widget.service.js.map

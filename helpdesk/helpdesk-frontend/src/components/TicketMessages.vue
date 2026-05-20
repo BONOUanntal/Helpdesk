@@ -13,7 +13,11 @@ async function fetchMessages() {
   const res = await fetch(`http://localhost:3000/tickets/${props.ticketId}/messages`, {
     headers: { Authorization: `Bearer ${token}` }
   })
-  messages.value = await res.json()
+  const data = await res.json()
+
+  console.log(data)
+
+  messages.value = data
 }
 
 async function sendMessage() {
@@ -62,7 +66,25 @@ watch(() => props.ticketId, fetchMessages)
           <p class="text-xs font-semibold mb-1 opacity-70">
             {{ msg.senderType }}
           </p>
-          <p class="text-sm">{{ msg.content }}</p>
+          <div class="space-y-2">
+
+            <p
+              v-if="msg.content"
+              class="text-sm"
+            >
+              {{ msg.content }}
+            </p>
+
+            <a
+              v-if="msg.fileUrl"
+              :href="`http://localhost:3000${msg.fileUrl}`"
+              target="_blank"
+              class="inline-flex items-center gap-2 text-sm underline"
+            >
+              📎 {{ msg.fileName }}
+            </a>
+
+          </div>
           <p class="text-xs mt-1 opacity-50">
             {{ new Date(msg.createdAt).toLocaleString('fr-FR') }}
           </p>

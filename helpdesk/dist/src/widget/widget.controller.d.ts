@@ -19,8 +19,8 @@ export declare class WidgetController {
         description: string | null;
     }[]>;
     getMessages(ticketId: string, clientEmail: string, apiKey: string): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;
@@ -34,8 +34,8 @@ export declare class WidgetController {
         apiKey: string;
         content: string;
     }): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;
@@ -50,8 +50,8 @@ export declare class WidgetController {
         ticketId: number;
     }>;
     uploadFile(ticketId: string, file: Express.Multer.File, body: any): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;

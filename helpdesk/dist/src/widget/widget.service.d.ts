@@ -1,7 +1,9 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 export declare class WidgetService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private mailService;
+    constructor(prisma: PrismaService, mailService: MailService);
     private verifyApiKey;
     private findOrCreateClient;
     createTicket(data: {
@@ -21,8 +23,8 @@ export declare class WidgetService {
         description: string | null;
     }[]>;
     getMessages(ticketId: number, clientEmail: string, apiKey: string): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;
@@ -36,8 +38,8 @@ export declare class WidgetService {
         apiKey: string;
         content: string;
     }): Promise<{
-        createdAt: Date;
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;
@@ -51,12 +53,9 @@ export declare class WidgetService {
     } | {
         ticketId: number;
     }>;
-    uploadFile(ticketId: number, file: Express.Multer.File, body: {
-        clientEmail: string;
-        apiKey: string;
-    }): Promise<{
-        createdAt: Date;
+    uploadFile(ticketId: number, file: Express.Multer.File, clientEmail: string, apiKey: string): Promise<{
         id: number;
+        createdAt: Date;
         ticketId: number;
         senderType: string;
         senderId: number | null;
