@@ -10,11 +10,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     }>;
     findAll(req: any): Promise<({
         application: {
@@ -48,11 +48,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     })[]>;
     assign(id: string, body: {
         supportId: number;
@@ -62,11 +62,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     }>;
     findOne(id: string, req: any): Promise<{
         application: {
@@ -95,11 +95,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     }>;
     update(id: string, body: UpdateTicketDto, req: any): Promise<{
         id: number;
@@ -107,11 +107,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     }>;
     remove(id: string, req: any): Promise<{
         id: number;
@@ -119,11 +119,11 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     }>;
     findEverything(req: any): Promise<({
         application: {
@@ -157,10 +157,10 @@ export declare class TicketsController {
         updatedAt: Date;
         subject: string;
         priority: string;
-        issueTypeId: number;
         status: string;
         applicationId: number;
         clientId: number;
         assignedTo: number | null;
+        issueTypeId: number;
     })[]>;
 }

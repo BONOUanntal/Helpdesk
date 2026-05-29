@@ -35,7 +35,7 @@ export class MailService {
       to,
 
       subject:
-        `🎫 Nouveau ticket #${data.ticketId}`,
+        `Nouveau ticket #${data.ticketId}`,
 
       html: `
         <h2>
@@ -104,7 +104,7 @@ export class MailService {
       to,
 
       subject:
-        `💬 Nouveau message ticket #${data.ticketId}`,
+        `Nouveau message ticket #${data.ticketId}`,
 
       html: `
         <h2>

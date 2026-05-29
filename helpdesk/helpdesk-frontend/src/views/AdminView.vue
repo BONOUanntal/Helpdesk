@@ -3,7 +3,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import NotificationBell from '@/components/NotificationBell.vue'
 
-
 const router = useRouter()
 const token = localStorage.getItem('token')
 const activeTab = ref('tickets')
@@ -21,15 +20,6 @@ const issueTypeSuccess = ref('')
 async function get(url: string) {
   const res = await fetch(`http://localhost:3000${url}`, {
     headers: { Authorization: `Bearer ${token}` }
-  })
-  return res.json()
-}
-
-async function patch(url: string, body: any) {
-  const res = await fetch(`http://localhost:3000${url}`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
   })
   return res.json()
 }
@@ -88,10 +78,24 @@ async function removeUserRole(userId: number, role: string) {
 }
 
 const sortedTickets = computed(() => {
-  return [...tickets.value].sort((a: any, b: any) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
+  return [...tickets.value].sort((a: any, b: any) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
 })
+
+function statusClass(status: string) {
+  if (status === 'OPEN') return 'bg-blue-100 text-blue-800'
+  if (status === 'IN_PROGRESS') return 'bg-amber-100 text-amber-800'
+  if (status === 'RESOLVED') return 'bg-green-100 text-green-800'
+  if (status === 'CLOSED') return 'bg-slate-100 text-slate-700'
+  return 'bg-slate-100 text-slate-700'
+}
+
+function priorityDot(priority: string) {
+  if (priority === 'HIGH') return 'bg-red-500'
+  if (priority === 'MEDIUM') return 'bg-amber-500'
+  return 'bg-green-500'
+}
 
 onMounted(async () => {
   tickets.value = await get('/tickets/admin/all')
@@ -108,283 +112,419 @@ function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 flex">
+  <div class="flex h-screen overflow-hidden bg-[#f8f9ff]" style="font-family: 'Inter', sans-serif;">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col p-6 gap-2">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold">⚙️ Admin</h1>
-        <NotificationBell />
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-[260px] bg-[#111827] text-white flex flex-col py-6 px-4 z-50">
+
+      <div class="flex items-center gap-3 px-2 mb-8">
+        <div class="bg-blue-600 p-2 rounded-lg">
+          <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold leading-tight">SupportDesk</h2>
+          <p class="text-[10px] text-gray-400 uppercase tracking-widest">Administration</p>
+        </div>
       </div>
 
-      <button
-        v-for="tab in ['tickets','users','applications','clients','issuetypes','stats']"
-        :key="tab"
-        @click="activeTab = tab"
-        :class="activeTab === tab ? 'bg-blue-600' : 'hover:bg-slate-700'"
-        class="text-left px-4 py-2 rounded-lg capitalize transition"
-      >
-        {{
-          tab === 'tickets' ? '🎫 Tickets' :
-          tab === 'users' ? '👥 Utilisateurs' :
-          tab === 'applications' ? '📱 Applications' :
-          tab === 'clients' ? '🧑 Clients' :
-          tab === 'issuetypes' ? '🏷️ Types de problème' :
-          '📊 Statistiques'
-        }}
-      </button>
+      <nav class="flex-1 space-y-1">
+        <button
+          v-for="tab in ['tickets','users','applications','clients','issuetypes','stats']"
+          :key="tab"
+          @click="activeTab = tab"
+          :class="activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'"
+          class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors"
+        >
+          <!-- Tickets -->
+          <svg v-if="tab === 'tickets'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+          </svg>
+          <!-- Users -->
+          <svg v-else-if="tab === 'users'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <!-- Applications -->
+          <svg v-else-if="tab === 'applications'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <!-- Clients -->
+          <svg v-else-if="tab === 'clients'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <!-- IssueTypes -->
+          <svg v-else-if="tab === 'issuetypes'" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          <!-- Stats -->
+          <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
 
-      <button
-        @click="logout"
-        class="mt-auto text-left px-4 py-2 rounded-lg hover:bg-red-700 transition"
-      >
-        Déconnexion
-      </button>
+          {{
+            tab === 'tickets' ? 'Tickets' :
+            tab === 'users' ? 'Utilisateurs' :
+            tab === 'applications' ? 'Applications' :
+            tab === 'clients' ? 'Clients' :
+            tab === 'issuetypes' ? 'Types de problème' :
+            'Statistiques'
+          }}
+        </button>
+      </nav>
+
+      <div class="pt-4 mt-4 border-t border-gray-800">
+        <button
+          @click="logout"
+          class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors rounded-md"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Déconnexion
+        </button>
+      </div>
     </aside>
 
-    <main class="flex-1 p-8">
+    <!-- Main -->
+    <main class="flex-1 ml-[260px] flex flex-col h-screen overflow-hidden">
 
-      <!-- Tickets -->
-      <div v-if="activeTab === 'tickets'">
-        <h2 class="text-2xl font-bold mb-4">Tous les tickets</h2>
-        <div class="bg-white rounded-2xl shadow overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="text-left px-6 py-4">ID</th>
-                <th class="text-left px-6 py-4">Application</th>
-                <th class="text-left px-6 py-4">Sujet</th>
-                <th class="text-left px-6 py-4">Type</th>
-                <th class="text-left px-6 py-4">Priorité</th>
-                <th class="text-left px-6 py-4">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="t in sortedTickets" :key="t.id" class="border-t hover:bg-slate-50">
-                <td class="px-6 py-4 text-blue-600 font-semibold">#{{ t.id }}</td>
-                <td class="px-6 py-4 text-slate-500">{{ t.application?.name ?? '—' }}</td>
-                <td class="px-6 py-4">{{ t.subject }}</td>
-                <td class="px-6 py-4 text-slate-500">{{ t.issueType?.name ?? '—' }}</td>
-                <td class="px-6 py-4">{{ t.priority }}</td>
-                <td class="px-6 py-4">
-                  <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                    {{ t.status }}
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="tickets.length === 0">
-                <td colspan="6" class="px-6 py-8 text-center text-slate-400">Aucun ticket</td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Header -->
+      <header class="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8">
+        <div>
+          <h1 class="text-lg font-bold text-gray-900">
+            {{
+              activeTab === 'tickets' ? 'Tous les tickets' :
+              activeTab === 'users' ? 'Utilisateurs' :
+              activeTab === 'applications' ? 'Applications' :
+              activeTab === 'clients' ? 'Clients' :
+              activeTab === 'issuetypes' ? 'Types de problème' :
+              'Statistiques'
+            }}
+          </h1>
         </div>
-      </div>
+        <div class="flex items-center gap-4 pr-2">
+          <NotificationBell />
+        </div>
+      </header>
 
-      <!-- Users -->
-      <div v-if="activeTab === 'users'">
-        <h2 class="text-2xl font-bold mb-4">Utilisateurs</h2>
-        <div class="bg-white rounded-2xl shadow overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="text-left px-6 py-4">ID</th>
-                <th class="text-left px-6 py-4">Nom</th>
-                <th class="text-left px-6 py-4">Email</th>
-                <th class="text-left px-6 py-4">Rôle principal</th>
-                <th class="text-left px-6 py-4">Rôles supplémentaires</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="u in users" :key="u.id" class="border-t hover:bg-slate-50">
-                <td class="px-6 py-4">#{{ u.id }}</td>
-                <td class="px-6 py-4">{{ u.name }}</td>
-                <td class="px-6 py-4">{{ u.email }}</td>
-                <td class="px-6 py-4">
-                  <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
-                    {{ u.role }}
-                  </span>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="flex flex-wrap gap-1 mb-2">
-                    <span
-                      v-for="ar in u.additionalRoles"
-                      :key="ar.role"
-                      class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center gap-1"
-                    >
-                      {{ ar.role }}
-                      <button
-                        @click="removeUserRole(u.id, ar.role)"
-                        class="text-blue-400 hover:text-red-500 font-bold ml-1"
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-8">
+
+        <!-- Tickets -->
+        <div v-if="activeTab === 'tickets'">
+          <div class="mb-8 flex items-end justify-between">
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Tous les tickets</h1>
+              <p class="mt-1 text-sm text-slate-500">Vue globale de tous les tickets de la plateforme.</p>
+            </div>
+            <div class="flex gap-3 text-sm">
+              <span class="bg-white border border-slate-200 rounded px-3 py-1 text-slate-600">
+                Total : <strong>{{ tickets.length }}</strong>
+              </span>
+              <span class="bg-blue-50 border border-blue-200 rounded px-3 py-1 text-blue-700">
+                Ouverts : <strong>{{ tickets.filter((t: any) => t.status === 'OPEN').length }}</strong>
+              </span>
+              <span class="bg-amber-50 border border-amber-200 rounded px-3 py-1 text-amber-700">
+                En cours : <strong>{{ tickets.filter((t: any) => t.status === 'IN_PROGRESS').length }}</strong>
+              </span>
+              <span class="bg-green-50 border border-green-200 rounded px-3 py-1 text-green-700">
+                Résolus : <strong>{{ tickets.filter((t: any) => t.status === 'RESOLVED').length }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Sujet</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Priorité</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr v-for="t in sortedTickets" :key="t.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ t.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      {{ t.application?.name ?? '—' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{{ t.subject }}</td>
+                  <td class="px-6 py-4 text-sm text-slate-500">{{ t.issueType?.name ?? '—' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <span :class="['h-2 w-2 rounded-full', priorityDot(t.priority)]"></span>
+                      <span class="text-xs font-medium text-gray-700">{{ t.priority }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span :class="['px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-tight', statusClass(t.status)]">
+                      {{ t.status }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="sortedTickets.length === 0">
+                  <td colspan="6" class="px-6 py-12 text-center text-slate-400 text-sm">Aucun ticket</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Users -->
+        <div v-if="activeTab === 'users'">
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Utilisateurs</h1>
+            <p class="mt-1 text-sm text-slate-500">Gérez les comptes et les rôles des utilisateurs.</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rôle principal</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rôles supplémentaires</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr v-for="u in users" :key="u.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ u.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ u.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ u.email }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 uppercase">
+                      {{ u.role }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span
+                        v-for="ar in u.additionalRoles"
+                        :key="ar.role"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
                       >
-                        ✕
-                      </button>
+                        {{ ar.role }}
+                        <button @click="removeUserRole(u.id, ar.role)" class="text-blue-400 hover:text-red-500 font-bold">✕</button>
+                      </span>
+                      <span v-if="!u.additionalRoles?.length" class="text-slate-400 text-xs italic">Aucun</span>
+                    </div>
+                    <select
+                      @change="(e) => { addUserRole(u.id, (e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = '' }"
+                      class="block rounded-md border-0 py-1 px-2 text-gray-900 ring-1 ring-gray-300 text-xs focus:ring-2 focus:ring-blue-600"
+                    >
+                      <option value="">— Ajouter rôle —</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
+                      <option value="SUPPORT">SUPPORT</option>
+                      <option value="CLIENT">CLIENT</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr v-if="users.length === 0">
+                  <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">Aucun utilisateur</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Applications -->
+        <div v-if="activeTab === 'applications'">
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Applications</h1>
+            <p class="mt-1 text-sm text-slate-500">Liste des applications connectées à la plateforme.</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Project Manager</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">API Key</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr v-for="a in applications" :key="a.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ a.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ a.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      {{ a.projectManager?.name ?? '—' }}
                     </span>
-                    <span v-if="!u.additionalRoles?.length" class="text-slate-400 text-xs">
-                      Aucun rôle supplémentaire
+                  </td>
+                  <td class="px-6 py-4 text-xs font-mono text-slate-500">{{ a.apiKey }}</td>
+                </tr>
+                <tr v-if="applications.length === 0">
+                  <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">Aucune application</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Clients -->
+        <div v-if="activeTab === 'clients'">
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Clients</h1>
+            <p class="mt-1 text-sm text-slate-500">Liste de tous les clients enregistrés.</p>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr v-for="c in clients" :key="c.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ c.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ c.name ?? '—' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ c.email ?? '—' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      {{ c.application?.name ?? '—' }}
                     </span>
-                  </div>
-                  <select
-                    @change="(e) => { addUserRole(u.id, (e.target as HTMLSelectElement).value); (e.target as HTMLSelectElement).value = '' }"
-                    class="border border-slate-300 rounded-lg px-2 py-1 text-sm"
-                  >
-                    <option value="">— Ajouter rôle —</option>
-                    <option value="ADMIN">ADMIN</option>
-                    <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
-                    <option value="SUPPORT">SUPPORT</option>
-                    <option value="CLIENT">CLIENT</option>
-                  </select>
-                </td>
-              </tr>
-              <tr v-if="users.length === 0">
-                <td colspan="5" class="px-6 py-8 text-center text-slate-400">Aucun utilisateur</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Applications -->
-      <div v-if="activeTab === 'applications'">
-        <h2 class="text-2xl font-bold mb-4">Applications</h2>
-        <div class="bg-white rounded-2xl shadow overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="text-left px-6 py-4">ID</th>
-                <th class="text-left px-6 py-4">Nom</th>
-                <th class="text-left px-6 py-4">Project Manager</th>
-                <th class="text-left px-6 py-4">API Key</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="a in applications" :key="a.id" class="border-t hover:bg-slate-50">
-                <td class="px-6 py-4">#{{ a.id }}</td>
-                <td class="px-6 py-4">{{ a.name }}</td>
-                <td class="px-6 py-4">{{ a.projectManager?.name ?? '—' }}</td>
-                <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ a.apiKey }}</td>
-              </tr>
-              <tr v-if="applications.length === 0">
-                <td colspan="4" class="px-6 py-8 text-center text-slate-400">Aucune application</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Clients -->
-      <div v-if="activeTab === 'clients'">
-        <h2 class="text-2xl font-bold mb-4">Clients</h2>
-        <div class="bg-white rounded-2xl shadow overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="text-left px-6 py-4">ID</th>
-                <th class="text-left px-6 py-4">Nom</th>
-                <th class="text-left px-6 py-4">Email</th>
-                <th class="text-left px-6 py-4">Application</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="c in clients" :key="c.id" class="border-t hover:bg-slate-50">
-                <td class="px-6 py-4">#{{ c.id }}</td>
-                <td class="px-6 py-4">{{ c.name ?? '—' }}</td>
-                <td class="px-6 py-4">{{ c.email ?? '—' }}</td>
-                <td class="px-6 py-4">{{ c.application?.name ?? '—' }}</td>
-              </tr>
-              <tr v-if="clients.length === 0">
-                <td colspan="4" class="px-6 py-8 text-center text-slate-400">Aucun client</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- IssueTypes -->
-      <div v-if="activeTab === 'issuetypes'">
-        <h2 class="text-2xl font-bold mb-4">Types de problème</h2>
-
-        <!-- Formulaire création -->
-        <div class="bg-white rounded-2xl shadow p-6 mb-6">
-          <h3 class="text-lg font-semibold mb-4">Ajouter un type</h3>
-          <div v-if="issueTypeError" class="mb-4 bg-red-100 text-red-700 p-3 rounded-xl text-sm">{{ issueTypeError }}</div>
-          <div v-if="issueTypeSuccess" class="mb-4 bg-green-100 text-green-700 p-3 rounded-xl text-sm">{{ issueTypeSuccess }}</div>
-          <div class="flex gap-4">
-            <input
-              v-model="newIssueType.name"
-              type="text"
-              placeholder="Nom du type (ex: Bug)"
-              class="flex-1 border border-slate-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              v-model="newIssueType.description"
-              type="text"
-              placeholder="Description (optionnel)"
-              class="flex-1 border border-slate-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              @click="createIssueType"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition"
-            >
-              Ajouter
-            </button>
+                  </td>
+                </tr>
+                <tr v-if="clients.length === 0">
+                  <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">Aucun client</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Liste -->
-        <div class="bg-white rounded-2xl shadow overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-slate-100">
-              <tr>
-                <th class="text-left px-6 py-4">ID</th>
-                <th class="text-left px-6 py-4">Nom</th>
-                <th class="text-left px-6 py-4">Description</th>
-                <th class="text-left px-6 py-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="it in issueTypes" :key="it.id" class="border-t hover:bg-slate-50">
-                <td class="px-6 py-4">#{{ it.id }}</td>
-                <td class="px-6 py-4 font-semibold">{{ it.name }}</td>
-                <td class="px-6 py-4 text-slate-500">{{ it.description ?? '—' }}</td>
-                <td class="px-6 py-4">
-                  <button
-                    @click="removeIssueType(it.id)"
-                    class="text-red-600 hover:underline text-sm"
-                  >
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="issueTypes.length === 0">
-                <td colspan="4" class="px-6 py-8 text-center text-slate-400">Aucun type</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <!-- IssueTypes -->
+        <div v-if="activeTab === 'issuetypes'">
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Types de problème</h1>
+            <p class="mt-1 text-sm text-slate-500">Gérez les catégories de tickets disponibles pour les clients.</p>
+          </div>
 
-      <!-- Stats -->
-      <div v-if="activeTab === 'stats'">
-        <h2 class="text-2xl font-bold mb-4">Statistiques</h2>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="bg-white rounded-2xl shadow p-6 text-center">
-            <p class="text-4xl font-bold text-blue-600">{{ tickets.length }}</p>
-            <p class="text-slate-500 mt-2">Tickets total</p>
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-6">
+            <h3 class="text-base font-bold text-gray-900 mb-4">Ajouter un type</h3>
+            <div v-if="issueTypeError" class="mb-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">{{ issueTypeError }}</div>
+            <div v-if="issueTypeSuccess" class="mb-4 bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-sm">{{ issueTypeSuccess }}</div>
+            <div class="flex gap-4">
+              <input
+                v-model="newIssueType.name"
+                type="text"
+                placeholder="Nom du type (ex: Bug)"
+                class="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 sm:text-sm"
+              />
+              <input
+                v-model="newIssueType.description"
+                type="text"
+                placeholder="Description (optionnel)"
+                class="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 sm:text-sm"
+              />
+              <button
+                @click="createIssueType"
+                class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
+              >
+                Ajouter
+              </button>
+            </div>
           </div>
-          <div class="bg-white rounded-2xl shadow p-6 text-center">
-            <p class="text-4xl font-bold text-purple-600">{{ users.length }}</p>
-            <p class="text-slate-500 mt-2">Utilisateurs</p>
-          </div>
-          <div class="bg-white rounded-2xl shadow p-6 text-center">
-            <p class="text-4xl font-bold text-green-600">{{ applications.length }}</p>
-            <p class="text-slate-500 mt-2">Applications</p>
-          </div>
-          <div class="bg-white rounded-2xl shadow p-6 text-center">
-            <p class="text-4xl font-bold text-orange-600">{{ clients.length }}</p>
-            <p class="text-slate-500 mt-2">Clients</p>
+
+          <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr v-for="it in issueTypes" :key="it.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ it.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ it.name }}</td>
+                  <td class="px-6 py-4 text-sm text-slate-500">{{ it.description ?? '—' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <button @click="removeIssueType(it.id)" class="text-red-500 hover:text-red-700 font-medium transition">
+                      Supprimer
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="issueTypes.length === 0">
+                  <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">Aucun type</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
 
+        <!-- Stats -->
+        <div v-if="activeTab === 'stats'">
+          <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Statistiques</h1>
+            <p class="mt-1 text-sm text-slate-500">Vue d'ensemble de la plateforme.</p>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-4xl font-bold text-blue-600">{{ tickets.length }}</p>
+              <p class="text-slate-500 mt-2 text-sm">Tickets total</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-4xl font-bold text-purple-600">{{ users.length }}</p>
+              <p class="text-slate-500 mt-2 text-sm">Utilisateurs</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-4xl font-bold text-green-600">{{ applications.length }}</p>
+              <p class="text-slate-500 mt-2 text-sm">Applications</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-4xl font-bold text-orange-600">{{ clients.length }}</p>
+              <p class="text-slate-500 mt-2 text-sm">Clients</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-3xl font-bold text-blue-700">{{ tickets.filter((t: any) => t.status === 'OPEN').length }}</p>
+              <p class="text-blue-600 mt-2 text-sm font-medium">Ouverts</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-3xl font-bold text-amber-700">{{ tickets.filter((t: any) => t.status === 'IN_PROGRESS').length }}</p>
+              <p class="text-amber-600 mt-2 text-sm font-medium">En cours</p>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-3xl font-bold text-green-700">{{ tickets.filter((t: any) => t.status === 'RESOLVED').length }}</p>
+              <p class="text-green-600 mt-2 text-sm font-medium">Résolus</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg shadow-sm p-6 text-center">
+              <p class="text-3xl font-bold text-slate-700">{{ tickets.filter((t: any) => t.status === 'CLOSED').length }}</p>
+              <p class="text-slate-600 mt-2 text-sm font-medium">Fermés</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </main>
   </div>
 </template>

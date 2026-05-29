@@ -2,6 +2,14 @@
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
+import {
+  Ticket,
+  Plus,
+  Clock3,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-vue-next'
+
 const auth = useAuth()
 
 const tickets = ref([])
@@ -48,9 +56,13 @@ onMounted(() => {
 
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-4xl font-bold text-slate-800">
-          Tableau de bord
-        </h1>
+        <div class="flex items-center gap-3">
+          <Ticket class="w-9 h-9 text-blue-600" />
+
+          <h1 class="text-4xl font-bold text-slate-800">
+            Tableau de bord
+          </h1>
+        </div>
 
         <p class="text-slate-500 mt-2">
           Gestion des tickets support
@@ -58,10 +70,71 @@ onMounted(() => {
       </div>
 
       <button
-        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition"
+        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition shadow"
       >
-        + Nouveau ticket
+        <Plus class="w-5 h-5" />
+        Nouveau ticket
       </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+      <div class="bg-white rounded-2xl p-5 shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-slate-500 text-sm">
+              Tickets totaux
+            </p>
+
+            <h2 class="text-3xl font-bold text-slate-800 mt-1">
+              {{ tickets.length }}
+            </h2>
+          </div>
+
+          <Ticket class="w-8 h-8 text-blue-600" />
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-slate-500 text-sm">
+              Tickets ouverts
+            </p>
+
+            <h2 class="text-3xl font-bold text-orange-500 mt-1">
+              {{
+                tickets.filter(
+                  t => t.status === 'OPEN'
+                ).length
+              }}
+            </h2>
+          </div>
+
+          <Clock3 class="w-8 h-8 text-orange-500" />
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-slate-500 text-sm">
+              Résolus
+            </p>
+
+            <h2 class="text-3xl font-bold text-green-600 mt-1">
+              {{
+                tickets.filter(
+                  t => t.status === 'RESOLVED'
+                ).length
+              }}
+            </h2>
+          </div>
+
+          <CheckCircle2 class="w-8 h-8 text-green-600" />
+        </div>
+      </div>
+
     </div>
 
     <div class="bg-white rounded-2xl shadow overflow-hidden">
@@ -98,7 +171,7 @@ onMounted(() => {
         <tbody>
 
           <tr
-            v-for="ticket in tickets"
+            v-for="ticket in sortedTickets"
             :key="ticket.id"
             class="border-t border-slate-100 hover:bg-slate-50"
           >
@@ -116,7 +189,14 @@ onMounted(() => {
 
             <td class="px-6 py-4">
               <span
-                class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+                :class="[
+                  'px-3 py-1 rounded-full text-sm font-medium',
+                  ticket.status === 'OPEN'
+                    ? 'bg-orange-100 text-orange-700'
+                    : ticket.status === 'IN_PROGRESS'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-green-100 text-green-700'
+                ]"
               >
                 {{ ticket.status }}
               </span>

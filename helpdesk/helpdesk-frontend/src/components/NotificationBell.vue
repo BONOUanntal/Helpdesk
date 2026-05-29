@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { BellRing } from 'lucide-vue-next'
 
 const emit = defineEmits<{ (e: 'open-ticket', ticketId: number): void }>()
 
@@ -53,7 +54,7 @@ onUnmounted(() => clearInterval(interval))
       @click="showPanel = !showPanel"
       class="relative p-2 rounded-full hover:bg-slate-700 transition"
     >
-      <span class="text-xl">🔔</span>
+      <BellRing class="w-6 h-6 text-amber-400" />
       <span
         v-if="unreadCount > 0"
         class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
@@ -64,7 +65,7 @@ onUnmounted(() => clearInterval(interval))
 
     <div
       v-if="showPanel"
-      class="absolute left-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50"
+      class="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 z-50"
     >
       <div class="flex items-center justify-between px-4 py-3 border-b">
         <h3 class="font-semibold text-slate-800">Notifications</h3>

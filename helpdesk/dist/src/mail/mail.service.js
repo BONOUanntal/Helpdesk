@@ -55,7 +55,7 @@ let MailService = class MailService {
         await this.transporter.sendMail({
             from: process.env.GMAIL_USER,
             to,
-            subject: `🎫 Nouveau ticket #${data.ticketId}`,
+            subject: `Nouveau ticket #${data.ticketId}`,
             html: `
         <h2>
           Nouveau ticket reçu
@@ -106,7 +106,7 @@ let MailService = class MailService {
         await this.transporter.sendMail({
             from: process.env.GMAIL_USER,
             to,
-            subject: `💬 Nouveau message ticket #${data.ticketId}`,
+            subject: `Nouveau message ticket #${data.ticketId}`,
             html: `
         <h2>
           Nouveau message client

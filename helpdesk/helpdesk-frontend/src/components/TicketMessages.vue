@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { Send } from 'lucide-vue-next'
 
 const props = defineProps<{ ticketId: number | null }>()
 
@@ -104,8 +105,9 @@ watch(() => props.ticketId, fetchMessages)
       <button
         @click="sendMessage"
         :disabled="loading"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
       >
+        <Send class="w-4 h-4" />
         Envoyer
       </button>
     </div>
