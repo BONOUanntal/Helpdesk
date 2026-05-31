@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { Send } from 'lucide-vue-next'
+import { io } from 'socket.io-client'
 
 const props = defineProps<{ ticketId: number | null }>()
+const socket = io('http://localhost:3000')
+
 
 const token = localStorage.getItem('token')
 const messages = ref([])
@@ -39,7 +42,13 @@ async function sendMessage() {
   loading.value = false
 }
 
-onMounted(fetchMessages)
+onMounted(() => {
+  socket.on('newMessage', (payload) => {
+    if (payload.ticketId === props.ticketId) {
+      messages.value.push(payload.message)
+    }
+  })
+})
 watch(() => props.ticketId, fetchMessages)
 </script>
 

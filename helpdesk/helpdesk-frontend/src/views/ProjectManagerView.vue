@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import TicketMessages from '@/components/TicketMessages.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
+
 
 const router = useRouter()
 const token = localStorage.getItem('token')
@@ -14,6 +15,12 @@ const selectedTicket = ref<any | null>(null)
 const selectedTicketId = ref<number | null>(null)
 const search = ref('')
 const loading = ref(false)
+const currentPage = ref(1)
+const ticketsPerPage = 15
+
+watch(search, () => {
+  currentPage.value = 1
+})
 
 async function get(url: string) {
   const res = await fetch(`http://localhost:3000${url}`, {
@@ -92,12 +99,27 @@ function logout() {
 
 const filteredTickets = computed(() => {
   let list = [...tickets.value].sort((a: any, b: any) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+)
+
+if (search.value) {
+  list = list.filter((t: any) =>
+  t.subject?.toLowerCase().includes(search.value.toLowerCase())
   )
-  if (!search.value) return list
-  return list.filter((t: any) =>
-    t.subject?.toLowerCase().includes(search.value.toLowerCase())
-  )
+}
+
+return list
+})
+
+const totalPages = computed(() =>
+  Math.ceil(filteredTickets.value.length / ticketsPerPage)
+)
+
+const paginatedTickets = computed(() => {
+  const start = (currentPage.value - 1) * ticketsPerPage
+  const end = start + ticketsPerPage
+
+  return filteredTickets.value.slice(start, end)
 })
 
 function statusClass(status: string) {
@@ -259,7 +281,7 @@ function priorityDot(priority: string) {
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-slate-200">
-                <tr v-for="t in filteredTickets" :key="t.id" class="hover:bg-gray-50 transition-colors">
+                <tr v-for="t in paginatedTickets" :key="t.id" class="hover:bg-gray-50 transition-colors">
                   <td class="px-4 py-4 text-sm font-semibold text-blue-600 whitespace-nowrap">#{{ t.id }}</td>
                   <td class="px-4 py-4">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
@@ -296,6 +318,31 @@ function priorityDot(priority: string) {
                 </tr>
               </tbody>
             </table>
+            <div
+              class="flex items-center justify-between border-t border-slate-200 px-6 py-4 bg-white"
+            >
+              <p class="text-sm text-slate-500">
+                Page {{ currentPage }} sur {{ totalPages }}
+              </p>
+
+              <div class="flex items-center gap-2">
+                <button
+                  @click="currentPage--"
+                  :disabled="currentPage === 1"
+                  class="px-4 py-2 rounded-md border border-slate-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Précédent
+                </button>
+
+                <button
+                  @click="currentPage++"
+                  :disabled="currentPage === totalPages"
+                  class="px-4 py-2 rounded-md border border-slate-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

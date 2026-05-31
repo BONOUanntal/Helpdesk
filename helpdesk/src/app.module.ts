@@ -12,6 +12,7 @@ import { IssueTypesModule } from './issue-types/issue-types.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { WidgetModule } from './widget/widget.module'
 import { MailModule } from './mail/mail.module'
+import { TicketGateway } from './websocket/ticket.gateway'
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MailModule } from './mail/mail.module'
     NotificationsModule,
     WidgetModule,
     MailModule,
+    TicketGateway
   ],
 })
 export class AppModule {}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import TicketMessages from '@/components/TicketMessages.vue'
 import NotificationBell from '@/components/NotificationBell.vue'
@@ -11,6 +11,8 @@ const tickets = ref([])
 const selectedTicket = ref<any>(null)
 const selectedTicketId = ref<number | null>(null)
 const search = ref('')
+const currentPage = ref(1)
+const ticketsPerPage = 15
 
 async function get(url: string) {
   const res = await fetch(`http://localhost:3000${url}`, {
@@ -54,15 +56,40 @@ onMounted(async () => {
   tickets.value = await get('/tickets')
 })
 
-const sortedTickets = computed(() => {
+const filteredTickets = computed(() => {
   let list = [...tickets.value]
+
+  // Du plus récent au plus ancien
   list.sort((a: any, b: any) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    new Date(b.createdAt).getTime() -
+    new Date(a.createdAt).getTime()
   )
-  if (!search.value) return list
-  return list.filter((t: any) =>
-    t.subject?.toLowerCase().includes(search.value.toLowerCase())
-  )
+
+  // Recherche
+  if (search.value) {
+    list = list.filter((t: any) =>
+      t.subject?.toLowerCase().includes(search.value.toLowerCase())
+    )
+  }
+
+  return list
+})
+
+const totalPages = computed(() =>
+  Math.ceil(filteredTickets.value.length / ticketsPerPage)
+)
+
+const paginatedTickets = computed(() => {
+  const start =
+    (currentPage.value - 1) * ticketsPerPage
+
+  const end = start + ticketsPerPage
+
+  return filteredTickets.value.slice(start, end)
+})
+
+watch(search, () => {
+  currentPage.value = 1
 })
 
 function statusClass(status: string) {
@@ -212,7 +239,7 @@ function logout() {
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-slate-200">
-                <tr v-for="t in sortedTickets" :key="t.id" class="hover:bg-gray-50 transition-colors">
+                <tr v-for="t in paginatedTickets" :key="t.id" class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ t.id }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
@@ -243,13 +270,39 @@ function logout() {
                     </button>
                   </td>
                 </tr>
-                <tr v-if="sortedTickets.length === 0">
+                <tr v-if="filteredTickets.length === 0">
                   <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
                     Aucun ticket assigné
                   </td>
                 </tr>
               </tbody>
             </table>
+            <div
+              v-if="totalPages > 1"
+              class="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white"
+            >
+              <p class="text-sm text-slate-500">
+                Page {{ currentPage }} sur {{ totalPages }}
+              </p>
+
+              <div class="flex gap-2">
+                <button
+                  @click="currentPage--"
+                  :disabled="currentPage === 1"
+                  class="px-4 py-2 text-sm rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Précédent
+                </button>
+
+                <button
+                  @click="currentPage++"
+                  :disabled="currentPage === totalPages"
+                  class="px-4 py-2 text-sm rounded border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -340,7 +393,7 @@ function logout() {
                 class="block w-full max-w-md rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm"
               >
                 <option :value="null">— Sélectionner un ticket —</option>
-                <option v-for="t in sortedTickets" :key="t.id" :value="t.id">
+                <option v-for="t in filteredTickets" :key="t.id" :value="t.id">
                   #{{ t.id }} — {{ t.subject }}
                 </option>
               </select>

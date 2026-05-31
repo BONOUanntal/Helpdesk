@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const ticket_gateway_1 = require("../websocket/ticket.gateway");
 let MessagesService = class MessagesService {
     prisma;
-    constructor(prisma) {
+    ticketGateway;
+    constructor(prisma, ticketGateway) {
         this.prisma = prisma;
+        this.ticketGateway = ticketGateway;
     }
     async findByTicket(ticketId) {
         return this.prisma.message.findMany({
@@ -37,6 +40,10 @@ let MessagesService = class MessagesService {
         const message = await this.prisma.message.create({
             data: { ticketId, senderId, senderType, content },
             include: { attachments: true },
+        });
+        this.ticketGateway.server.emit('newMessage', {
+            ticketId,
+            message,
         });
         if (senderType === 'CLIENT') {
             await this.prisma.notification.create({
@@ -72,12 +79,20 @@ let MessagesService = class MessagesService {
                 }
             }
         }
+        this.ticketGateway.emitNewMessage(ticketId);
+        this.ticketGateway.emitTicketUpdated(ticketId);
+        console.log('EMIT SOCKET', ticketId);
+        this.ticketGateway.server.emit('newMessage', {
+            ticketId,
+            message,
+        });
         return message;
     }
 };
 exports.MessagesService = MessagesService;
 exports.MessagesService = MessagesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        ticket_gateway_1.TicketGateway])
 ], MessagesService);
 //# sourceMappingURL=messages.service.js.map

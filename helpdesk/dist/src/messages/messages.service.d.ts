@@ -1,7 +1,9 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { TicketGateway } from '../websocket/ticket.gateway';
 export declare class MessagesService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private ticketGateway;
+    constructor(prisma: PrismaService, ticketGateway: TicketGateway);
     findByTicket(ticketId: number): Promise<({
         attachments: {
             id: number;

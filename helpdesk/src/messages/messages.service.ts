@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TicketGateway } from '../websocket/ticket.gateway'
 
 @Injectable()
 export class MessagesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ticketGateway: TicketGateway,
+  ) {}
 
   async findByTicket(ticketId: number) {
     return this.prisma.message.findMany({
@@ -27,6 +31,12 @@ export class MessagesService {
     const message = await this.prisma.message.create({
       data: { ticketId, senderId, senderType, content },
       include: { attachments: true },
+    })
+
+    // websocket temps réel
+    this.ticketGateway.server.emit('newMessage', {
+      ticketId,
+      message,
     })
 
     // Détermine qui notifier
@@ -70,7 +80,13 @@ export class MessagesService {
         }
       }
     }
-
+    this.ticketGateway.emitNewMessage(ticketId)
+    this.ticketGateway.emitTicketUpdated(ticketId)
+    console.log('EMIT SOCKET', ticketId)
+    this.ticketGateway.server.emit('newMessage', {
+      ticketId,
+      message,
+    })
     return message
   }
 }

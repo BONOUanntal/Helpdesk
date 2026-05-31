@@ -20,6 +20,7 @@ const issue_types_module_1 = require("./issue-types/issue-types.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const widget_module_1 = require("./widget/widget.module");
 const mail_module_1 = require("./mail/mail.module");
+const ticket_gateway_1 = require("./websocket/ticket.gateway");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -40,6 +41,7 @@ exports.AppModule = AppModule = __decorate([
             notifications_module_1.NotificationsModule,
             widget_module_1.WidgetModule,
             mail_module_1.MailModule,
+            ticket_gateway_1.TicketGateway
         ],
     })
 ], AppModule);
