@@ -2,17 +2,14 @@ import { Module } from '@nestjs/common'
 import { TicketsService } from './tickets.service'
 import { TicketsController } from './tickets.controller'
 import { PrismaModule } from '../prisma/prisma.module'
-import { TicketGateway } from '../websocket/ticket.gateway'
+import { WebsocketModule } from '../websocket/websocket.module'
 
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    PrismaModule,
+    WebsocketModule,
+  ],
   controllers: [TicketsController],
-  providers: [
-    TicketsService,
-    TicketGateway,
-  ],
-  exports: [
-    TicketGateway,
-  ],
+  providers: [TicketsService],
 })
 export class TicketsModule {}

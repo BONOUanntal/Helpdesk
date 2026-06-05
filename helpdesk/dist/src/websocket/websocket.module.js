@@ -6,20 +6,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MessagesModule = void 0;
+exports.WebsocketModule = void 0;
 const common_1 = require("@nestjs/common");
-const messages_controller_1 = require("./messages.controller");
-const messages_service_1 = require("./messages.service");
-const prisma_module_1 = require("../prisma/prisma.module");
-let MessagesModule = class MessagesModule {
+const jwt_1 = require("@nestjs/jwt");
+const ticket_gateway_1 = require("./ticket.gateway");
+const messages_module_1 = require("../messages/messages.module");
+let WebsocketModule = class WebsocketModule {
 };
-exports.MessagesModule = MessagesModule;
-exports.MessagesModule = MessagesModule = __decorate([
+exports.WebsocketModule = WebsocketModule;
+exports.WebsocketModule = WebsocketModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
-        controllers: [messages_controller_1.MessagesController],
-        providers: [messages_service_1.MessagesService],
-        exports: [messages_service_1.MessagesService],
+        imports: [
+            messages_module_1.MessagesModule,
+            jwt_1.JwtModule.register({
+                secret: 'secret123',
+            }),
+        ],
+        providers: [ticket_gateway_1.TicketGateway],
+        exports: [ticket_gateway_1.TicketGateway],
     })
-], MessagesModule);
-//# sourceMappingURL=messages.module.js.map
+], WebsocketModule);
+//# sourceMappingURL=websocket.module.js.map

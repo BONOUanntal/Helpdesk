@@ -12,17 +12,14 @@ import { IssueTypesModule } from './issue-types/issue-types.module'
 import { NotificationsModule } from './notifications/notifications.module'
 import { WidgetModule } from './widget/widget.module'
 import { MailModule } from './mail/mail.module'
-import { TicketGateway } from './websocket/ticket.gateway'
+import { WebsocketModule } from './websocket/websocket.module'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-
-    TicketsModule,
+    ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    TicketsModule,
     UsersModule,
     ApplicationsModule,
     ClientsModule,
@@ -31,7 +28,7 @@ import { TicketGateway } from './websocket/ticket.gateway'
     NotificationsModule,
     WidgetModule,
     MailModule,
-    TicketGateway
+    WebsocketModule,
   ],
 })
 export class AppModule {}

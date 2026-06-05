@@ -12,8 +12,6 @@ const router = createRouter({
     { path: '/', redirect: '/login' },
     { path: '/login', component: LoginView },
     { path: '/admin', component: AdminView, meta: { role: 'ADMIN' } },
-    {path: '/admin/tickets/:id', name: 'AdminTicketView', component: () => import('@/views/AdminTicketView.vue'),
-    meta: {requiresAuth: true, role: 'ADMIN'}},
     { path: '/support', component: SupportView, meta: { role: 'SUPPORT' } },
     { path: '/pm', component: ProjectManagerView, meta: { role: 'PROJECT_MANAGER' } },
     { path: '/client', component: ClientView, meta: { role: 'CLIENT' } },

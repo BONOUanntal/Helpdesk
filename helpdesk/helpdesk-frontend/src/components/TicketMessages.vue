@@ -1,62 +1,90 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Send } from 'lucide-vue-next'
 import { io } from 'socket.io-client'
 
 const props = defineProps<{ ticketId: number | null }>()
-const socket = io('http://localhost:3000')
-
 
 const token = localStorage.getItem('token')
-const messages = ref([])
+const messages = ref<any[]>([])
 const newMessage = ref('')
 const loading = ref(false)
+const messagesContainer = ref<HTMLElement | null>(null)
 
-async function fetchMessages() {
-  if (!props.ticketId) return
-  const res = await fetch(`http://localhost:3000/tickets/${props.ticketId}/messages`, {
-    headers: { Authorization: `Bearer ${token}` }
+const socket = io('http://localhost:3000', {
+  transports: ['websocket'],
+})
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
   })
-  const data = await res.json()
-
-  console.log(data)
-
-  messages.value = data
 }
 
-async function sendMessage() {
+function joinTicket(ticketId: number) {
+  socket.emit('joinTicket', ticketId)
+}
+
+function leaveTicket(ticketId: number) {
+  socket.emit('leaveTicket', ticketId)
+}
+
+function sendMessage() {
   if (!newMessage.value.trim() || !props.ticketId) return
   loading.value = true
 
-  await fetch(`http://localhost:3000/tickets/${props.ticketId}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ content: newMessage.value }),
+  socket.emit('sendMessage', {
+    ticketId: props.ticketId,
+    content: newMessage.value,
+    token,
   })
 
   newMessage.value = ''
-  await fetchMessages()
   loading.value = false
 }
 
-onMounted(() => {
-  socket.on('newMessage', (payload) => {
-    if (payload.ticketId === props.ticketId) {
-      messages.value.push(payload.message)
-    }
-  })
+// Reçoit l'historique quand on rejoint une room
+socket.on('messageHistory', (history: any[]) => {
+  messages.value = history
+  scrollToBottom()
 })
-watch(() => props.ticketId, fetchMessages)
+
+// Reçoit un nouveau message en temps réel
+socket.on('newMessage', (message: any) => {
+  const exists = messages.value.some((m: any) => m.id === message.id)
+  if (!exists) {
+    messages.value.push(message)
+    scrollToBottom()
+  }
+})
+
+socket.on('error', (err: any) => {
+  console.error('Socket error:', err)
+  loading.value = false
+})
+
+watch(() => props.ticketId, (newId, oldId) => {
+  if (oldId) leaveTicket(oldId)
+  if (newId) joinTicket(newId)
+}, { immediate: true })
+
+onUnmounted(() => {
+  if (props.ticketId) leaveTicket(props.ticketId)
+  socket.off('messageHistory')
+  socket.off('newMessage')
+  socket.off('error')
+})
 </script>
 
 <template>
   <div v-if="ticketId" class="flex flex-col h-full">
 
-    <!-- Liste des messages -->
-    <div class="flex-1 overflow-y-auto space-y-3 mb-4 max-h-96 pr-1">
+    <div
+      ref="messagesContainer"
+      class="flex-1 overflow-y-auto space-y-3 mb-4 max-h-96 pr-1"
+    >
       <div v-if="messages.length === 0" class="text-center text-slate-400 py-8">
         Aucun message pour ce ticket
       </div>
@@ -76,25 +104,18 @@ watch(() => props.ticketId, fetchMessages)
           <p class="text-xs font-semibold mb-1 opacity-70">
             {{ msg.senderType }}
           </p>
-          <div class="space-y-2">
+          <p v-if="msg.content" class="text-sm">
+            {{ msg.content }}
+          </p>
 
-            <p
-              v-if="msg.content"
-              class="text-sm"
-            >
-              {{ msg.content }}
-            </p>
-
-            <a
-              v-if="msg.fileUrl"
-              :href="`http://localhost:3000${msg.fileUrl}`"
-              target="_blank"
-              class="inline-flex items-center gap-2 text-sm underline"
-            >
-              📎 {{ msg.fileName }}
-            </a>
-
-          </div>
+          <a
+            v-if="msg.fileUrl"
+            :href="`http://localhost:3000${msg.fileUrl}`"
+            target="_blank"
+            class="inline-flex items-center gap-2 text-sm underline mt-2"
+          >
+            📎 {{ msg.fileName }}
+          </a>
           <p class="text-xs mt-1 opacity-50">
             {{ new Date(msg.createdAt).toLocaleString('fr-FR') }}
           </p>
@@ -102,7 +123,6 @@ watch(() => props.ticketId, fetchMessages)
       </div>
     </div>
 
-    <!-- Zone de réponse -->
     <div class="flex gap-2 border-t pt-4">
       <input
         v-model="newMessage"

@@ -1,13 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { TicketGateway } from '../websocket/ticket.gateway'
 
 @Injectable()
 export class MessagesService {
-  constructor(
-    private prisma: PrismaService,
-    private ticketGateway: TicketGateway,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async findByTicket(ticketId: number) {
     return this.prisma.message.findMany({
@@ -17,7 +13,12 @@ export class MessagesService {
     })
   }
 
-  async create(ticketId: number, senderId: number, senderType: string, content: string) {
+  async createFromSocket(
+    ticketId: number,
+    senderId: number,
+    senderType: string,
+    content: string,
+  ) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
@@ -25,25 +26,14 @@ export class MessagesService {
         application: { include: { projectManager: true } },
       },
     })
-    if (!ticket) throw new NotFoundException('Ticket introuvable')
+    if (!ticket) throw new Error('Ticket introuvable')
 
-    // Crée le message
     const message = await this.prisma.message.create({
       data: { ticketId, senderId, senderType, content },
       include: { attachments: true },
     })
 
-    // websocket temps réel
-    this.ticketGateway.server.emit('newMessage', {
-      ticketId,
-      message,
-    })
-
-    // Détermine qui notifier
-    // Si c'est le client qui envoie → notifie le PM et le support assigné
-    // Si c'est le PM ou support qui envoie → notifie le client via son User
     if (senderType === 'CLIENT') {
-      // Notifie le PM
       await this.prisma.notification.create({
         data: {
           userId: ticket.application.projectManagerId,
@@ -51,42 +41,29 @@ export class MessagesService {
           type: 'NEW_MESSAGE',
         },
       })
-
-      // Notifie le support assigné si différent du PM
       if (ticket.assignedTo && ticket.assignedTo !== ticket.application.projectManagerId) {
         await this.prisma.notification.create({
-          data: {
-            userId: ticket.assignedTo,
-            ticketId,
-            type: 'NEW_MESSAGE',
-          },
+          data: { userId: ticket.assignedTo, ticketId, type: 'NEW_MESSAGE' },
         })
       }
     } else {
-      // PM ou support répond → notifie le client
-      // On retrouve le User correspondant au Client via l'email
       if (ticket.client.email) {
         const clientUser = await this.prisma.user.findFirst({
           where: { email: ticket.client.email },
         })
         if (clientUser) {
           await this.prisma.notification.create({
-            data: {
-              userId: clientUser.id,
-              ticketId,
-              type: 'NEW_MESSAGE',
-            },
+            data: { userId: clientUser.id, ticketId, type: 'NEW_MESSAGE' },
           })
         }
       }
     }
-    this.ticketGateway.emitNewMessage(ticketId)
-    this.ticketGateway.emitTicketUpdated(ticketId)
-    console.log('EMIT SOCKET', ticketId)
-    this.ticketGateway.server.emit('newMessage', {
-      ticketId,
-      message,
-    })
+
     return message
+  }
+
+  // Garde create pour compatibilité avec le controller HTTP
+  async create(ticketId: number, senderId: number, senderType: string, content: string) {
+    return this.createFromSocket(ticketId, senderId, senderType, content)
   }
 }

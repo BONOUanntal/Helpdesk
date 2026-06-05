@@ -12,13 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const ticket_gateway_1 = require("../websocket/ticket.gateway");
 let MessagesService = class MessagesService {
     prisma;
-    ticketGateway;
-    constructor(prisma, ticketGateway) {
+    constructor(prisma) {
         this.prisma = prisma;
-        this.ticketGateway = ticketGateway;
     }
     async findByTicket(ticketId) {
         return this.prisma.message.findMany({
@@ -27,7 +24,7 @@ let MessagesService = class MessagesService {
             orderBy: { createdAt: 'asc' },
         });
     }
-    async create(ticketId, senderId, senderType, content) {
+    async createFromSocket(ticketId, senderId, senderType, content) {
         const ticket = await this.prisma.ticket.findUnique({
             where: { id: ticketId },
             include: {
@@ -36,14 +33,10 @@ let MessagesService = class MessagesService {
             },
         });
         if (!ticket)
-            throw new common_1.NotFoundException('Ticket introuvable');
+            throw new Error('Ticket introuvable');
         const message = await this.prisma.message.create({
             data: { ticketId, senderId, senderType, content },
             include: { attachments: true },
-        });
-        this.ticketGateway.server.emit('newMessage', {
-            ticketId,
-            message,
         });
         if (senderType === 'CLIENT') {
             await this.prisma.notification.create({
@@ -55,11 +48,7 @@ let MessagesService = class MessagesService {
             });
             if (ticket.assignedTo && ticket.assignedTo !== ticket.application.projectManagerId) {
                 await this.prisma.notification.create({
-                    data: {
-                        userId: ticket.assignedTo,
-                        ticketId,
-                        type: 'NEW_MESSAGE',
-                    },
+                    data: { userId: ticket.assignedTo, ticketId, type: 'NEW_MESSAGE' },
                 });
             }
         }
@@ -70,29 +59,20 @@ let MessagesService = class MessagesService {
                 });
                 if (clientUser) {
                     await this.prisma.notification.create({
-                        data: {
-                            userId: clientUser.id,
-                            ticketId,
-                            type: 'NEW_MESSAGE',
-                        },
+                        data: { userId: clientUser.id, ticketId, type: 'NEW_MESSAGE' },
                     });
                 }
             }
         }
-        this.ticketGateway.emitNewMessage(ticketId);
-        this.ticketGateway.emitTicketUpdated(ticketId);
-        console.log('EMIT SOCKET', ticketId);
-        this.ticketGateway.server.emit('newMessage', {
-            ticketId,
-            message,
-        });
         return message;
+    }
+    async create(ticketId, senderId, senderType, content) {
+        return this.createFromSocket(ticketId, senderId, senderType, content);
     }
 };
 exports.MessagesService = MessagesService;
 exports.MessagesService = MessagesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        ticket_gateway_1.TicketGateway])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], MessagesService);
 //# sourceMappingURL=messages.service.js.map

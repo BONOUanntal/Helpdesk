@@ -20,19 +20,17 @@ const issue_types_module_1 = require("./issue-types/issue-types.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const widget_module_1 = require("./widget/widget.module");
 const mail_module_1 = require("./mail/mail.module");
-const ticket_gateway_1 = require("./websocket/ticket.gateway");
+const websocket_module_1 = require("./websocket/websocket.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({
-                isGlobal: true,
-            }),
-            tickets_module_1.TicketsModule,
+            config_1.ConfigModule.forRoot({ isGlobal: true }),
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
+            tickets_module_1.TicketsModule,
             users_module_1.UsersModule,
             applications_module_1.ApplicationsModule,
             clients_module_1.ClientsModule,
@@ -41,7 +39,7 @@ exports.AppModule = AppModule = __decorate([
             notifications_module_1.NotificationsModule,
             widget_module_1.WidgetModule,
             mail_module_1.MailModule,
-            ticket_gateway_1.TicketGateway
+            websocket_module_1.WebsocketModule,
         ],
     })
 ], AppModule);
