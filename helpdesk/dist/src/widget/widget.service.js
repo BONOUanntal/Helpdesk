@@ -13,12 +13,15 @@ exports.WidgetService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const mail_service_1 = require("../mail/mail.service");
+const jwt_1 = require("@nestjs/jwt");
 let WidgetService = class WidgetService {
     prisma;
     mailService;
-    constructor(prisma, mailService) {
+    jwtService;
+    constructor(prisma, mailService, jwtService) {
         this.prisma = prisma;
         this.mailService = mailService;
+        this.jwtService = jwtService;
     }
     async verifyApiKey(apiKey) {
         const application = await this.prisma.application.findUnique({
@@ -267,8 +270,17 @@ let WidgetService = class WidgetService {
                 ticketId: null,
             };
         }
+        const widgetToken = this.jwtService.sign({
+            ticketId: ticket.id,
+            clientEmail,
+            role: 'CLIENT_WIDGET',
+        }, {
+            secret: 'secret123',
+            expiresIn: '30d',
+        });
         return {
             ticketId: ticket.id,
+            widgetToken,
         };
     }
     async uploadFile(ticketId, file, clientEmail, apiKey) {
@@ -376,6 +388,7 @@ exports.WidgetService = WidgetService;
 exports.WidgetService = WidgetService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        jwt_1.JwtService])
 ], WidgetService);
 //# sourceMappingURL=widget.service.js.map

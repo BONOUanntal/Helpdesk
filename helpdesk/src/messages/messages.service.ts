@@ -13,6 +13,46 @@ export class MessagesService {
     })
   }
 
+  async createWidgetMessage(
+    ticketId: number,
+    clientEmail: string,
+    content: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findUnique({
+        where: { id: ticketId },
+        include: {
+          client: true,
+        },
+      })
+
+    if (!ticket) {
+      throw new Error(
+        'Ticket introuvable',
+      )
+    }
+
+    if (
+      ticket.client.email !==
+      clientEmail
+    ) {
+      throw new Error(
+        'Unauthorized',
+      )
+    }
+
+    return this.prisma.message.create({
+      data: {
+        ticketId,
+        content,
+        senderType: 'CLIENT',
+      },
+      include: {
+        attachments: true,
+      },
+    })
+  }
+
   async createFromSocket(
     ticketId: number,
     senderId: number,

@@ -9,8 +9,9 @@ import { Server, Socket } from 'socket.io'
 import { MessagesService } from '../messages/messages.service'
 import { JwtService } from '@nestjs/jwt'
 
-@WebSocketGateway({cors: { origin: '*'}})
-
+@WebSocketGateway({
+  cors: { origin: '*' },
+})
 export class TicketGateway {
   @WebSocketServer()
   server: Server
@@ -20,7 +21,10 @@ export class TicketGateway {
     private jwtService: JwtService,
   ) {}
 
-  // Rejoindre la room d'un ticket
+  // =========================
+  // PM / ADMIN
+  // =========================
+
   @SubscribeMessage('joinTicket')
   async handleJoin(
     @MessageBody() ticketId: number,
@@ -28,12 +32,17 @@ export class TicketGateway {
   ) {
     client.join(`ticket:${ticketId}`)
 
-    // Envoie l'historique des messages au client qui rejoint
-    const messages = await this.messagesService.findByTicket(ticketId)
-    client.emit('messageHistory', messages)
+    const messages =
+      await this.messagesService.findByTicket(
+        ticketId,
+      )
+
+    client.emit(
+      'messageHistory',
+      messages,
+    )
   }
 
-  // Quitter la room
   @SubscribeMessage('leaveTicket')
   handleLeave(
     @MessageBody() ticketId: number,
@@ -42,32 +51,143 @@ export class TicketGateway {
     client.leave(`ticket:${ticketId}`)
   }
 
-  // Recevoir et créer un message
   @SubscribeMessage('sendMessage')
   async handleMessage(
-    @MessageBody() data: { ticketId: number; content: string; token: string },
-    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      ticketId: number
+      content: string
+      token: string
+    },
+    @ConnectedSocket()
+    client: Socket,
   ) {
     try {
-      // Vérifie le token JWT
-      const payload = this.jwtService.verify(data.token, {
-        secret: 'secret123',
-      })
+      const payload =
+        this.jwtService.verify(
+          data.token,
+          {
+            secret: 'secret123',
+          },
+        )
 
-      // Crée le message via le service
-      const message = await this.messagesService.createFromSocket(
+      const message =
+        await this.messagesService.createFromSocket(
+          data.ticketId,
+          payload.userId,
+          payload.role,
+          data.content,
+        )
+
+      this.server
+        .to(`ticket:${data.ticketId}`)
+        .emit(
+          'ticket:newMessage',
+          message,
+        )
+    } catch (e) {
+      client.emit(
+        'error',
+        {
+          message:
+            'Non autorisé',
+        },
+      )
+    }
+  }
+
+  // =========================
+  // WIDGET CLIENT
+  // =========================
+
+  @SubscribeMessage(
+    'joinWidgetTicket',
+  )
+  async handleJoinWidget(
+    @MessageBody()
+    data: {
+      ticketId: number
+      clientEmail: string
+      apiKey: string
+    },
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    client.join(
+      `ticket:${data.ticketId}`,
+    )
+
+    const messages =
+      await this.messagesService.findByTicket(
         data.ticketId,
-        payload.userId,
-        payload.role,
-        data.content,
       )
 
-      // Émet le message à tous dans la room
-      this.server.to(`ticket:${data.ticketId}`).emit('newMessage', message)
+    client.emit(
+      'widgetMessageHistory',
+      messages,
+    )
+  }
 
+  @SubscribeMessage(
+    'leaveWidgetTicket',
+  )
+  handleLeaveWidget(
+    @MessageBody()
+    ticketId: number,
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    client.leave(
+      `ticket:${ticketId}`,
+    )
+  }
+
+  @SubscribeMessage(
+    'sendWidgetMessage',
+  )
+  async handleWidgetMessage(
+    @MessageBody()
+    data: {
+      ticketId: number
+      content: string
+      token: string
+    },
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    try {
+      const payload =
+        this.jwtService.verify(
+          data.token,
+          {
+            secret:
+              'secret123',
+          },
+        )
+
+      const message =
+        await this.messagesService.createWidgetMessage(
+          data.ticketId,
+          payload.clientEmail,
+          data.content,
+        )
+
+      this.server
+        .to(
+          `ticket:${data.ticketId}`,
+        )
+        .emit(
+          'newMessage',
+          message,
+        )
     } catch (e) {
-      console.log('JWT ERROR:', e.message) // ← ajoute ça
-      client.emit('error', { message: 'Non autorisé' })
+      client.emit(
+        'error',
+        {
+          message:
+            'Unauthorized',
+        },
+      )
     }
   }
 }

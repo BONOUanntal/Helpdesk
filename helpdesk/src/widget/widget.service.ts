@@ -6,12 +6,14 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service'
 import { MailService } from '../mail/mail.service'
+import { JwtService } from '@nestjs/jwt'
 
 @Injectable()
 export class WidgetService {
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
+    private jwtService: JwtService,
   ) {}
 
   private async verifyApiKey(apiKey: string) {
@@ -395,8 +397,22 @@ export class WidgetService {
       }
     }
 
+    const widgetToken =
+      this.jwtService.sign(
+        {
+          ticketId: ticket.id,
+          clientEmail,
+          role: 'CLIENT_WIDGET',
+        },
+        {
+          secret: 'secret123',
+          expiresIn: '30d',
+        },
+      )
+
     return {
       ticketId: ticket.id,
+      widgetToken,
     }
   }
 

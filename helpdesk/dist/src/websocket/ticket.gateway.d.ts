@@ -13,4 +13,15 @@ export declare class TicketGateway {
         content: string;
         token: string;
     }, client: Socket): Promise<void>;
+    handleJoinWidget(data: {
+        ticketId: number;
+        clientEmail: string;
+        apiKey: string;
+    }, client: Socket): Promise<void>;
+    handleLeaveWidget(ticketId: number, client: Socket): void;
+    handleWidgetMessage(data: {
+        ticketId: number;
+        content: string;
+        token: string;
+    }, client: Socket): Promise<void>;
 }

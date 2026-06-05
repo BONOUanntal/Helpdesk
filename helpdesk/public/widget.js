@@ -22,6 +22,7 @@
   let notificationsEnabled = false
   let initializedPolling = false
   let currentTicketId = null
+  let widgetToken = null
 
   // ─────────────────────────────────────────
   // Notifications
@@ -588,6 +589,14 @@
   // ─────────────────────────────────────────
 
   function showList() {
+
+    if (currentTicketId) {
+      socket.emit(
+        'leaveWidgetTicket',
+        currentTicketId
+      )
+    }
+
     currentTicketId = null
 
     listView.style.display = 'flex'
@@ -612,12 +621,21 @@
       c => c.ticketId === ticketId
     )
 
+    widgetToken = conv?.token || null
+
     if (conv) {
       conv.unread = 0
       saveConversations()
     }
 
-    fetchMessages()
+    socket.emit(
+      'joinWidgetTicket',
+      {
+        ticketId,
+        clientEmail: CLIENT_EMAIL,
+        apiKey: API_KEY,
+      }
+    )
   }
 
   function showForm() {
@@ -765,26 +783,17 @@
     })
   }
 
-  async function fetchMessages() {
+  function fetchMessages() {
     if (!currentTicketId) return
 
-    try {
-      const res = await fetch(
-        `${HELPDESK_URL}/widget/ticket/${currentTicketId}/messages?clientEmail=${encodeURIComponent(
-          CLIENT_EMAIL
-        )}&apiKey=${encodeURIComponent(
-          API_KEY
-        )}`
-      )
-
-      if (!res.ok) return
-
-      const messages = await res.json()
-
-      renderMessages(messages)
-    } catch (e) {
-      console.error(e)
-    }
+    socket.emit(
+      'joinWidgetTicket',
+      {
+        ticketId: currentTicketId,
+        clientEmail: CLIENT_EMAIL,
+        apiKey: API_KEY,
+      }
+    )
   }
 
   // ─────────────────────────────────────────
@@ -900,50 +909,52 @@
   // Send message
   // ─────────────────────────────────────────
 
-  async function sendMessage() {
-    const content =
-      inputEl.value.trim()
+  function sendMessage() {
+    const content = inputEl.value.trim()
 
     if (!content || !currentTicketId)
       return
 
     sendBtn.disabled = true
 
+    // message optimiste
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      senderType: 'CLIENT',
+      content,
+      createdAt: new Date().toISOString(),
+    }
+
+    // IMPORTANT:
+    // on met à jour le vrai state
+    window.__ticketMessages = [
+      ...(window.__ticketMessages || []),
+      tempMessage,
+    ]
+
+    renderMessages(
+      window.__ticketMessages
+    )
+
     inputEl.value = ''
 
-    try {
-      await fetch(
-        `${HELPDESK_URL}/widget/ticket/${currentTicketId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            apiKey: API_KEY,
-            clientEmail:
-              CLIENT_EMAIL,
-            content,
-          }),
-        }
-      )
-
-      await fetchMessages()
-    } catch (e) {
-      console.error(e)
-    }
+    socket.emit(
+      'sendWidgetMessage',
+      {
+        ticketId: currentTicketId,
+        content,
+        token: widgetToken,
+      }
+    )
 
     sendBtn.disabled = false
   }
 
-  async function handleFileUpload(event) {
+  function handleFileUpload(event) {
     if (!currentTicketId) {
       alert(
         "Veuillez ouvrir une conversation avant d'envoyer un fichier."
       )
-
-      event.target.value = ''
 
       return
     }
@@ -952,62 +963,17 @@
 
     if (!file) return
 
-    // limite 2MB
     if (file.size > 2 * 1024 * 1024) {
       alert(
         'Le fichier dépasse la limite de 2MB.'
       )
 
-      event.target.value = ''
-
       return
     }
 
-    const formData = new FormData()
+    uploadFile(file)
 
-    formData.append('file', file)
-
-    formData.append(
-      'clientEmail',
-      CLIENT_EMAIL
-    )
-
-    formData.append(
-      'apiKey',
-      API_KEY
-    )
-
-    try {
-      const res = await fetch(
-        `${HELPDESK_URL}/widget/tickets/${currentTicketId}/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      )
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        alert(
-          data.message ||
-          "Erreur lors de l'envoi"
-        )
-
-        return
-      }
-
-      await fetchMessages()
-
-      // reset input
-      event.target.value = ''
-    } catch (e) {
-      console.error(e)
-
-      alert(
-        "Impossible d'envoyer le fichier"
-      )
-    }
+    event.target.value = ''
   }
 
   // ─────────────────────────────────────────
@@ -1015,35 +981,29 @@
   // ─────────────────────────────────────────
 
   async function uploadFile(file) {
-    if (!currentTicketId) return
+    const reader = new FileReader()
 
-    const formData = new FormData()
+    reader.onload = () => {
 
-    formData.append('file', file)
+      socket.emit(
+        socket.emit(
+          'sendWidgetFile',
+          {
+            ticketId: currentTicketId,
+            token: widgetToken,
 
-    formData.append(
-      'clientEmail',
-      CLIENT_EMAIL
-    )
-
-    formData.append(
-      'apiKey',
-      API_KEY
-    )
-
-    try {
-      await fetch(
-        `${HELPDESK_URL}/widget/tickets/${currentTicketId}/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
+            file: {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              content: reader.result,
+            },
+          }
+        )
       )
-
-      await fetchMessages()
-    } catch (e) {
-      console.error(e)
     }
+
+    reader.readAsDataURL(file)
   }
 
   // ─────────────────────────────────────────
@@ -1123,6 +1083,59 @@
     'click',
     () => {
       fileInput.click()
+    }
+  )
+
+  // ─────────────────────────────────────────
+  // web.socket
+  // ─────────────────────────────────────────
+
+  const socket = io('http://localhost:3000', {
+    transports: ['websocket'],
+  })
+
+  socket.on(
+    'widgetMessageHistory',
+    (messages) => {
+      window.__ticketMessages =
+        messages
+
+      renderMessages(messages)
+    }
+  )
+
+  socket.on(
+    'newMessage',
+    (message) => {
+
+      const messages =
+        window.__ticketMessages || []
+
+      // si on reçoit le vrai message
+      // on supprime le temp correspondant
+      const filtered =
+        messages.filter(
+          m =>
+            !(
+              typeof m.id === 'string' &&
+              m.id.startsWith('temp-') &&
+              m.content === message.content
+            )
+        )
+
+      const exists =
+        filtered.some(
+          m => m.id === message.id
+        )
+
+      if (!exists) {
+        filtered.push(message)
+      }
+
+      window.__ticketMessages =
+        filtered
+
+      renderMessages(filtered)
     }
   )
 
@@ -1216,11 +1229,14 @@
             return
           }
 
+          widgetToken = data.widgetToken
+
           const conversation = {
             ticketId: data.ticketId,
             subject,
             unread: 0,
             lastSupportCount: 0,
+            token: data.widgetToken,
           }
 
           conversations.unshift(

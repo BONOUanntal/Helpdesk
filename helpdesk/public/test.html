@@ -1,22 +1,40 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Test Widget Chat</title>
+
   <style>
-    body { font-family: Arial, sans-serif; padding: 40px; background: #f8fafc; }
-    h1 { color: #1e293b; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f8fafc;
+    }
+
+    h1 {
+      color: #1e293b;
+    }
   </style>
 </head>
 <body>
-  <h1>Mon application</h1>
-  <p>Ceci est une application cliente. Cliquez sur le bouton 💬 en bas à droite pour obtenir de l'aide.</p>
 
+  <h1>Mon application</h1>
+
+  <p>
+    Ceci est une application cliente.
+    Cliquez sur 💬 en bas à droite.
+  </p>
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+  <!-- Widget -->
   <script
     src="http://localhost:3000/widget.js"
     data-api-key="key123"
     data-client-email="client@test.com"
     data-client-name="Test Client"
   ></script>
+
 </body>
 </html>

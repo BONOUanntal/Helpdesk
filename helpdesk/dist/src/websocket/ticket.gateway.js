@@ -39,11 +39,38 @@ let TicketGateway = class TicketGateway {
                 secret: 'secret123',
             });
             const message = await this.messagesService.createFromSocket(data.ticketId, payload.userId, payload.role, data.content);
-            this.server.to(`ticket:${data.ticketId}`).emit('newMessage', message);
+            this.server
+                .to(`ticket:${data.ticketId}`)
+                .emit('ticket:newMessage', message);
         }
         catch (e) {
-            console.log('JWT ERROR:', e.message);
-            client.emit('error', { message: 'Non autorisé' });
+            client.emit('error', {
+                message: 'Non autorisé',
+            });
+        }
+    }
+    async handleJoinWidget(data, client) {
+        client.join(`ticket:${data.ticketId}`);
+        const messages = await this.messagesService.findByTicket(data.ticketId);
+        client.emit('widgetMessageHistory', messages);
+    }
+    handleLeaveWidget(ticketId, client) {
+        client.leave(`ticket:${ticketId}`);
+    }
+    async handleWidgetMessage(data, client) {
+        try {
+            const payload = this.jwtService.verify(data.token, {
+                secret: 'secret123',
+            });
+            const message = await this.messagesService.createWidgetMessage(data.ticketId, payload.clientEmail, data.content);
+            this.server
+                .to(`ticket:${data.ticketId}`)
+                .emit('newMessage', message);
+        }
+        catch (e) {
+            client.emit('error', {
+                message: 'Unauthorized',
+            });
         }
     }
 };
@@ -76,8 +103,34 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], TicketGateway.prototype, "handleMessage", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('joinWidgetTicket'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], TicketGateway.prototype, "handleJoinWidget", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('leaveWidgetTicket'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, socket_io_1.Socket]),
+    __metadata("design:returntype", void 0)
+], TicketGateway.prototype, "handleLeaveWidget", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('sendWidgetMessage'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], TicketGateway.prototype, "handleWidgetMessage", null);
 exports.TicketGateway = TicketGateway = __decorate([
-    (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
+    (0, websockets_1.WebSocketGateway)({
+        cors: { origin: '*' },
+    }),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
         jwt_1.JwtService])
 ], TicketGateway);

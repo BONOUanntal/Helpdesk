@@ -1,9 +1,11 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { JwtService } from '@nestjs/jwt';
 export declare class WidgetService {
     private prisma;
     private mailService;
-    constructor(prisma: PrismaService, mailService: MailService);
+    private jwtService;
+    constructor(prisma: PrismaService, mailService: MailService, jwtService: JwtService);
     private verifyApiKey;
     private findOrCreateClient;
     createTicket(data: {
@@ -50,8 +52,10 @@ export declare class WidgetService {
     }>;
     getActiveTicket(clientEmail: string, apiKey: string): Promise<{
         ticketId: null;
+        widgetToken?: undefined;
     } | {
         ticketId: number;
+        widgetToken: string;
     }>;
     uploadFile(ticketId: number, file: Express.Multer.File, clientEmail: string, apiKey: string): Promise<{
         id: number;

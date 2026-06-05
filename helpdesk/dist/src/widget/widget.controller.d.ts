@@ -46,8 +46,10 @@ export declare class WidgetController {
     }>;
     getActiveTicket(clientEmail: string, apiKey: string): Promise<{
         ticketId: null;
+        widgetToken?: undefined;
     } | {
         ticketId: number;
+        widgetToken: string;
     }>;
     uploadFile(ticketId: string, file: Express.Multer.File, body: any): Promise<{
         id: number;
