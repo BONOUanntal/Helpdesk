@@ -14,14 +14,17 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const mail_service_1 = require("../mail/mail.service");
 const jwt_1 = require("@nestjs/jwt");
+const ticket_gateway_1 = require("../websocket/ticket.gateway");
 let WidgetService = class WidgetService {
     prisma;
     mailService;
     jwtService;
-    constructor(prisma, mailService, jwtService) {
+    ticketGateway;
+    constructor(prisma, mailService, jwtService, ticketGateway) {
         this.prisma = prisma;
         this.mailService = mailService;
         this.jwtService = jwtService;
+        this.ticketGateway = ticketGateway;
     }
     async verifyApiKey(apiKey) {
         const application = await this.prisma.application.findUnique({
@@ -110,9 +113,18 @@ let WidgetService = class WidgetService {
                 console.error('❌ Erreur email PM:', error);
             }
         }
+        const widgetToken = this.jwtService.sign({
+            ticketId: ticket.id,
+            clientEmail: client.email,
+            role: 'CLIENT_WIDGET',
+        }, {
+            secret: 'secret123',
+            expiresIn: '30d',
+        });
         return {
             success: true,
             ticketId: ticket.id,
+            widgetToken,
         };
     }
     async getIssueTypes() {
@@ -182,6 +194,9 @@ let WidgetService = class WidgetService {
                 content: body.content,
             },
         });
+        this.ticketGateway.server
+            .to(`ticket:${ticketId}`)
+            .emit('ticket:newMessage', message);
         if (ticket.application
             ?.projectManager
             ?.email) {
@@ -389,6 +404,7 @@ exports.WidgetService = WidgetService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         mail_service_1.MailService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        ticket_gateway_1.TicketGateway])
 ], WidgetService);
 //# sourceMappingURL=widget.service.js.map

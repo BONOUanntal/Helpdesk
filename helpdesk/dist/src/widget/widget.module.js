@@ -13,15 +13,16 @@ const widget_service_1 = require("./widget.service");
 const prisma_module_1 = require("../prisma/prisma.module");
 const mail_module_1 = require("../mail/mail.module");
 const jwt_1 = require("@nestjs/jwt");
+const websocket_module_1 = require("../websocket/websocket.module");
 let WidgetModule = class WidgetModule {
 };
 exports.WidgetModule = WidgetModule;
 exports.WidgetModule = WidgetModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, mail_module_1.MailModule,
-            jwt_1.JwtModule.register({
-                secret: 'secret123',
-            }),
+        imports: [prisma_module_1.PrismaModule,
+            mail_module_1.MailModule,
+            websocket_module_1.WebsocketModule,
+            jwt_1.JwtModule.register({ secret: 'secret123' }),
         ],
         controllers: [widget_controller_1.WidgetController],
         providers: [widget_service_1.WidgetService],

@@ -26,27 +26,33 @@ let TicketGateway = class TicketGateway {
         this.jwtService = jwtService;
     }
     async handleJoin(ticketId, client) {
+        console.log('JOIN TICKET', ticketId, 'socket:', client.id);
         client.join(`ticket:${ticketId}`);
+        const rooms = Array.from(client.rooms);
+        console.log('ROOMS après join:', rooms);
         const messages = await this.messagesService.findByTicket(ticketId);
+        console.log('MESSAGES TROUVÉS:', messages.length);
         client.emit('messageHistory', messages);
     }
     handleLeave(ticketId, client) {
         client.leave(`ticket:${ticketId}`);
     }
     async handleMessage(data, client) {
+        console.log('SEND MESSAGE reçu:', data.ticketId, data.content);
         try {
-            const payload = this.jwtService.verify(data.token, {
-                secret: 'secret123',
-            });
+            const payload = this.jwtService.verify(data.token, { secret: 'secret123' });
+            console.log('PAYLOAD:', payload);
             const message = await this.messagesService.createFromSocket(data.ticketId, payload.userId, payload.role, data.content);
-            this.server
-                .to(`ticket:${data.ticketId}`)
-                .emit('ticket:newMessage', message);
+            console.log('MESSAGE CRÉÉ:', message.id);
+            const room = `ticket:${data.ticketId}`;
+            const socketsInRoom = await this.server.in(room).fetchSockets();
+            console.log('SOCKETS DANS LA ROOM:', socketsInRoom.length);
+            this.server.to(room).emit('ticket:newMessage', message);
+            console.log('ÉMIS vers', room);
         }
         catch (e) {
-            client.emit('error', {
-                message: 'Non autorisé',
-            });
+            console.log('ERREUR:', e.message);
+            client.emit('error', { message: 'Non autorisé' });
         }
     }
     async handleJoinWidget(data, client) {
@@ -65,7 +71,7 @@ let TicketGateway = class TicketGateway {
             const message = await this.messagesService.createWidgetMessage(data.ticketId, payload.clientEmail, data.content);
             this.server
                 .to(`ticket:${data.ticketId}`)
-                .emit('newMessage', message);
+                .emit('ticket:newMessage', message);
         }
         catch (e) {
             client.emit('error', {

@@ -49,63 +49,40 @@ function sendMessage() {
 
 // Reçoit l'historique quand on rejoint une room
 socket.on('messageHistory', (history: any[]) => {
-  console.log(
-  'MESSAGE HISTORY RECEIVED',
-  history,
-)
+  console.log('messageHistory reçu:', history.length, 'messages')
   messages.value = history
   scrollToBottom()
 })
 
 // Reçoit un nouveau message en temps réel
-socket.on(
-  'ticket:newMessage',
-  (message: any) => {
-    const exists =
-      messages.value.some(
-        (m: any) => m.id === message.id
-      )
-
-      console.log(
-        'NEW MESSAGE',
-        message,
-      )
-    if (!exists) {
-      messages.value = [
-        ...messages.value,
-        message,
-      ]
-
-      scrollToBottom()
-    }
+socket.on('ticket:newMessage', (message: any) => {
+  console.log('ticket:newMessage reçu:', message)
+  const exists = messages.value.some((m: any) => m.id === message.id)
+  if (!exists) {
+    messages.value = [...messages.value, message]
+    scrollToBottom()
   }
-)
+})
+
 
 socket.on('error', (err: any) => {
   console.error('Socket error:', err)
   loading.value = false
 })
 
-watch(
-  () => props.ticketId,
-  (newId, oldId) => {
+watch(() => props.ticketId, (newId, oldId) => {
+  console.log('TICKET ID CHANGE:', oldId, '->', newId)
+  if (newId === joinedTicket.value) {
+    console.log('MÊME TICKET, skip')
+    return
+  }
+  if (oldId) leaveTicket(oldId)
+  if (newId) {
+    joinTicket(newId)
+    joinedTicket.value = newId
+  }
+}, { immediate: true })
 
-    // évite de rejoin le même ticket
-    if (newId === joinedTicket.value) {
-      return
-    }
-
-    if (oldId) {
-      leaveTicket(oldId)
-    }
-
-    if (newId) {
-      joinTicket(newId)
-      joinedTicket.value = newId
-    }
-  },
-  { immediate: true },
-)
 
 onUnmounted(() => {
   if (props.ticketId) leaveTicket(props.ticketId)

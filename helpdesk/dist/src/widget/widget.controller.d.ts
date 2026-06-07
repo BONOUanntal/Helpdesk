@@ -12,6 +12,7 @@ export declare class WidgetController {
     }): Promise<{
         success: boolean;
         ticketId: number;
+        widgetToken: string;
     }>;
     getIssueTypes(): Promise<{
         id: number;

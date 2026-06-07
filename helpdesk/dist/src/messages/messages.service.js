@@ -29,25 +29,38 @@ let MessagesService = class MessagesService {
             where: { id: ticketId },
             include: {
                 client: true,
+                application: {
+                    include: {
+                        projectManager: true,
+                    },
+                },
             },
         });
         if (!ticket) {
             throw new Error('Ticket introuvable');
         }
-        if (ticket.client.email !==
-            clientEmail) {
-            throw new Error('Unauthorized');
-        }
-        return this.prisma.message.create({
-            data: {
-                ticketId,
-                content,
-                senderType: 'CLIENT',
-            },
-            include: {
-                attachments: true,
+        const client = await this.prisma.client.findFirst({
+            where: {
+                email: clientEmail,
+                applicationId: ticket.applicationId,
             },
         });
+        const message = await this.prisma.message.create({
+            data: {
+                ticketId,
+                senderId: client?.id ?? null,
+                senderType: 'CLIENT',
+                content,
+            },
+        });
+        await this.prisma.notification.create({
+            data: {
+                userId: ticket.application.projectManagerId,
+                ticketId,
+                type: 'NEW_MESSAGE',
+            },
+        });
+        return message;
     }
     async createFromSocket(ticketId, senderId, senderType, content) {
         const ticket = await this.prisma.ticket.findUnique({

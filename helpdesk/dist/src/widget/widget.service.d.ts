@@ -1,11 +1,13 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
+import { TicketGateway } from '../websocket/ticket.gateway';
 export declare class WidgetService {
     private prisma;
     private mailService;
     private jwtService;
-    constructor(prisma: PrismaService, mailService: MailService, jwtService: JwtService);
+    private ticketGateway;
+    constructor(prisma: PrismaService, mailService: MailService, jwtService: JwtService, ticketGateway: TicketGateway);
     private verifyApiKey;
     private findOrCreateClient;
     createTicket(data: {
@@ -18,6 +20,7 @@ export declare class WidgetService {
     }): Promise<{
         success: boolean;
         ticketId: number;
+        widgetToken: string;
     }>;
     getIssueTypes(): Promise<{
         id: number;

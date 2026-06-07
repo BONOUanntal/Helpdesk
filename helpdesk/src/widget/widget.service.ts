@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service'
 import { MailService } from '../mail/mail.service'
 import { JwtService } from '@nestjs/jwt'
+import { TicketGateway } from '../websocket/ticket.gateway'
 
 @Injectable()
 export class WidgetService {
@@ -14,7 +15,9 @@ export class WidgetService {
     private prisma: PrismaService,
     private mailService: MailService,
     private jwtService: JwtService,
+    private ticketGateway: TicketGateway,
   ) {}
+
 
   private async verifyApiKey(apiKey: string) {
       const application =
@@ -153,9 +156,22 @@ export class WidgetService {
       }
     }
 
+    const widgetToken = this.jwtService.sign(
+      {
+        ticketId: ticket.id,
+        clientEmail: client.email,
+        role: 'CLIENT_WIDGET',
+      },
+      {
+        secret: 'secret123',
+        expiresIn: '30d',
+      },
+    )
+
     return {
       success: true,
       ticketId: ticket.id,
+      widgetToken,
     }
   }
 
@@ -249,14 +265,16 @@ export class WidgetService {
     const message = await this.prisma.message.create({
       data: {
         ticketId,
-
         senderId: client?.id ?? null,
-
         senderType: 'CLIENT',
-
         content: body.content,
       },
     })
+
+    // Émet via socket à tous dans la room du ticket
+    this.ticketGateway.server
+      .to(`ticket:${ticketId}`)
+      .emit('ticket:newMessage', message)
 
     // Email PM
     if (

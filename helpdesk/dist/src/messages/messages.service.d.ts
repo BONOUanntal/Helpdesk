@@ -22,14 +22,6 @@ export declare class MessagesService {
         fileType: string | null;
     })[]>;
     createWidgetMessage(ticketId: number, clientEmail: string, content: string): Promise<{
-        attachments: {
-            id: number;
-            createdAt: Date;
-            fileUrl: string;
-            fileType: string;
-            messageId: number;
-        }[];
-    } & {
         id: number;
         createdAt: Date;
         ticketId: number;

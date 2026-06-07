@@ -1,4 +1,10 @@
 (function () {
+  if (window.__HELPDESK_WIDGET_LOADED__) {
+    console.log('Widget already loaded')
+    return
+  }
+
+  window.__HELPDESK_WIDGET_LOADED__ = true
   const HELPDESK_URL = 'http://localhost:3000'
 
   const scriptTag =
@@ -984,22 +990,19 @@
     const reader = new FileReader()
 
     reader.onload = () => {
-
       socket.emit(
-        socket.emit(
-          'sendWidgetFile',
-          {
-            ticketId: currentTicketId,
-            token: widgetToken,
+        'sendWidgetFile',
+        {
+          ticketId: currentTicketId,
+          token: widgetToken,
 
-            file: {
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              content: reader.result,
-            },
-          }
-        )
+          file: {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: reader.result,
+          },
+        }
       )
     }
 
@@ -1010,24 +1013,25 @@
   // Events
   // ─────────────────────────────────────────
 
-  btn.addEventListener(
-    'click',
-    async () => {
-      await initNotifications()
+  btn.addEventListener('click', (e) => {
+  e.preventDefault()
+  e.stopImmediatePropagation()
 
-      panel.classList.toggle('open')
+  console.log('CLICK BTN')
 
-      if (
-        panel.classList.contains('open')
-      ) {
-        loadConversations()
+  panel.classList.add('open')
 
-        showList()
+  loadConversations()
+  showList()
+  startPolling()
+})
 
-        startPolling()
-      }
-    }
-  )
+// document.addEventListener('click', (e) => {
+//   console.log(
+//     'DOCUMENT CLICK:',
+//     e.target
+//   )
+// })
 
   closeBtn.addEventListener(
     'click',
@@ -1104,10 +1108,7 @@
     }
   )
 
-  socket.on(
-    'newMessage',
-    (message) => {
-
+  socket.on('ticket:newMessage', (message) => {
       const messages =
         window.__ticketMessages || []
 
