@@ -1,4 +1,6 @@
 (function () {
+
+  console.log('WIDGET START')
   if (window.__HELPDESK_WIDGET_LOADED__) {
     console.log('Widget already loaded')
     return
@@ -944,6 +946,15 @@
 
     inputEl.value = ''
 
+    console.log(
+      'SEND WIDGET MESSAGE',
+      {
+        ticketId: currentTicketId,
+        content,
+        token: widgetToken,
+      }
+    )
+
     socket.emit(
       'sendWidgetMessage',
       {
@@ -951,6 +962,9 @@
         content,
         token: widgetToken,
       }
+    )
+    console.log(
+      'EMIT DONE'
     )
 
     sendBtn.disabled = false
@@ -1094,9 +1108,13 @@
   // web.socket
   // ─────────────────────────────────────────
 
+  console.log('ABOUT TO INIT SOCKET')
+  console.log(typeof io)
+  
   const socket = io('http://localhost:3000', {
     transports: ['websocket'],
   })
+  console.log('SOCKET CREATED')
 
   socket.on(
     'widgetMessageHistory',
