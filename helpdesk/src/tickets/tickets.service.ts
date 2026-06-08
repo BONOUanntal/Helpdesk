@@ -44,23 +44,59 @@ export class TicketsService {
     return ticket
   }
 
-  async assign(ticketId: number, supportId: number, requesterId: number) {
-    // Vérifie que le ticket appartient à une app du PM
-    const ticket = await this.prisma.ticket.findFirst({
-      where: {
-        id: ticketId,
-        application: { projectManagerId: requesterId },
-      },
-    })
-    if (!ticket) throw new NotFoundException('Ticket introuvable ou non autorisé')
+  async assign(
+    ticketId: number,
+    supportId: number,
+    requesterId: number,
+    role: string,
+  ) {
+    let ticket
 
-    // Assigne le ticket
-    const updated = await this.prisma.ticket.update({
-      where: { id: ticketId },
-      data: { assignedTo: supportId },
-    })
+    // ADMIN → peut assigner n'importe quel ticket
+    if (role === 'ADMIN') {
+      ticket = await this.prisma.ticket.findFirst({
+        where: { id: ticketId },
+      })
+    }
 
-    // Notifie le support assigné
+    // PROJECT MANAGER → seulement ses tickets
+    else if (role === 'PROJECT_MANAGER') {
+      ticket = await this.prisma.ticket.findFirst({
+        where: {
+          id: ticketId,
+          application: {
+            projectManagerId: requesterId,
+          },
+        },
+      })
+    }
+
+    // autres rôles refusés
+    else {
+      throw new NotFoundException(
+        'Non autorisé',
+      )
+    }
+
+    if (!ticket) {
+      throw new NotFoundException(
+        'Ticket introuvable ou non autorisé',
+      )
+    }
+
+    // assignation
+    const updated =
+      await this.prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          assignedTo: supportId,
+        },
+        include: {
+          assignedUser: true,
+        },
+      })
+
+    // notification au support assigné
     await this.prisma.notification.create({
       data: {
         userId: supportId,
@@ -71,6 +107,8 @@ export class TicketsService {
 
     return updated
   }
+
+
 
   async findOne(id: number, userId: number) {
     const ticket = await this.prisma.ticket.findFirst({

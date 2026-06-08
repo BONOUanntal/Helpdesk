@@ -79,8 +79,8 @@ let TicketGateway = class TicketGateway {
             });
         }
     }
-    async handleWidgetFile(data) {
-        console.log('FILE RECEIVED');
+    async handleWidgetFile(data, client) {
+        console.log('FILE EVENT HIT');
         console.log(data);
     }
 };
@@ -139,9 +139,11 @@ __decorate([
 ], TicketGateway.prototype, "handleWidgetMessage", null);
 __decorate([
     (0, websockets_1.SubscribeMessage)('sendWidgetFile'),
+    (0, websockets_1.SubscribeMessage)('sendWidgetFile'),
     __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], TicketGateway.prototype, "handleWidgetFile", null);
 exports.TicketGateway = TicketGateway = __decorate([

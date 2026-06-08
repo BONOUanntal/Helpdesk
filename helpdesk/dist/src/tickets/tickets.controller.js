@@ -31,8 +31,8 @@ let TicketsController = class TicketsController {
     findAll(req) {
         return this.ticketsService.findAll(req.user.userId, req.user.role, req.user.clientId);
     }
-    assign(id, body, req) {
-        return this.ticketsService.assign(Number(id), body.supportId, req.user.userId);
+    assignTicket(id, supportId, req) {
+        return this.ticketsService.assign(Number(id), supportId, req.user.userId, req.user.role);
     }
     findOne(id, req) {
         return this.ticketsService.findOne(Number(id), req.user.userId);
@@ -66,15 +66,16 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TicketsController.prototype, "findAll", null);
 __decorate([
+    (0, roles_decorator_1.Roles)('ADMIN', 'PROJECT_MANAGER'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Patch)(':id/assign'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(1, (0, common_1.Body)('supportId')),
     __param(2, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Number, Object]),
     __metadata("design:returntype", void 0)
-], TicketsController.prototype, "assign", null);
+], TicketsController.prototype, "assignTicket", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

@@ -23,26 +23,97 @@ const currentPage = ref(1)
 const itemsPerPage = 15
 
 const selectedTicket = ref<any | null>(null)
+const supports = ref<any[]>([])
 
-function openTicket(ticket: any) {
-  selectedTicket.value = ticket
-  activeTab.value = 'detail'
-}
+  const loading = ref(false)
+  
+  function openTicket(ticket: any) {
+    selectedTicket.value = ticket
+    activeTab.value = 'detail'
+  }
 
-async function assignTicket(ticketId: number, supportId: number) {
-  if (!supportId) return
-  const res = await fetch(`http://localhost:3000/tickets/${ticketId}/assign`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ supportId }),
-  })
-  if (res.ok) {
-    tickets.value = await get('/tickets/admin/all')
-    if (selectedTicket.value?.id === ticketId) {
-      selectedTicket.value = tickets.value.find((t: any) => t.id === ticketId)
+  
+  async function loadData() {
+    try {
+      loading.value = true
+      tickets.value = await get('/tickets/admin/all')
+      clients.value = await get('/clients')
+      users.value = await get('/users')
+      supports.value = users.value.filter((u: any) => u.role === 'SUPPORT')
+    } finally {
+      loading.value = false
     }
   }
-}
+
+  async function assignTicket(
+    ticketId: number,
+    supportId: number
+  ) {
+    if (!supportId) return
+
+    console.log(
+      'ASSIGN DATA',
+      {
+        ticketId,
+        supportId,
+      }
+    )
+
+
+    try {
+      const res = await fetch(
+        `http://localhost:3000/tickets/${ticketId}/assign`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            supportId,
+          }),
+        }
+      )
+
+      if (!res.ok) {
+        const error =
+          await res.text()
+
+        console.log(
+          'ASSIGN ERROR:',
+          error
+        )
+
+        throw new Error(error)
+      }
+
+      // refresh tickets
+      tickets.value =
+        await get(
+          '/tickets/admin/all'
+        )
+
+      // refresh ticket ouvert
+      if (
+        selectedTicket.value?.id ===
+        ticketId
+      ) {
+        selectedTicket.value =
+          tickets.value.find(
+            (t: any) =>
+              t.id === ticketId
+          )
+      }
+    } catch (error) {
+      console.error(error)
+
+      alert(
+        "Erreur lors de l'assignation"
+      )
+    }
+  }
+
 
 async function updateStatus(ticketId: number, status: string) {
   if (!status) return
@@ -58,6 +129,17 @@ async function updateStatus(ticketId: number, status: string) {
     }
   }
 }
+
+const assignableUsers = computed(() => {
+  return users.value.filter((u: any) =>
+    u.role === 'SUPPORT' ||
+    u.role === 'PROJECT_MANAGER' ||
+    u.additionalRoles?.some((r: any) =>
+      ['SUPPORT', 'PROJECT_MANAGER'].includes(r.role)
+    )
+  )
+})
+
 
 async function get(url: string) {
   const res = await fetch(`http://localhost:3000${url}`, {
@@ -199,15 +281,6 @@ onMounted(async () => {
   issueTypes.value = await get('/issue-types')
 })
 
-const assignableUsers = computed(() => {
-  return users.value.filter((u: any) =>
-    u.role === 'SUPPORT' ||
-    u.role === 'PROJECT_MANAGER' ||
-    u.additionalRoles?.some((r: any) =>
-      ['SUPPORT', 'PROJECT_MANAGER'].includes(r.role)
-    )
-  )
-})
 
 
 async function updateTicketStatus(
@@ -233,6 +306,7 @@ async function updateTicketStatus(
   }
 }
 
+
 async function updateTicketPriority(
   ticketId: number,
   priority: string
@@ -255,6 +329,8 @@ async function updateTicketPriority(
     alert('Erreur lors du changement de priorité')
   }
 }
+
+
 
 function logout() {
   localStorage.clear()
@@ -286,7 +362,7 @@ function logout() {
           v-for="tab in ['stats', 'tickets','users','applications','clients','issuetypes']"
           :key="tab"
           @click="activeTab = tab"
-          :class="activeTab === 'tickets' || activeTab === 'detail' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'"
+          :class="activeTab === tab || (tab === 'tickets' && activeTab === 'detail') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'"
           class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors"
         >
           <!-- Tickets -->

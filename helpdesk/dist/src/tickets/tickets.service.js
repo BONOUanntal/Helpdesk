@@ -49,18 +49,37 @@ let TicketsService = class TicketsService {
         });
         return ticket;
     }
-    async assign(ticketId, supportId, requesterId) {
-        const ticket = await this.prisma.ticket.findFirst({
-            where: {
-                id: ticketId,
-                application: { projectManagerId: requesterId },
-            },
-        });
-        if (!ticket)
+    async assign(ticketId, supportId, requesterId, role) {
+        let ticket;
+        if (role === 'ADMIN') {
+            ticket = await this.prisma.ticket.findFirst({
+                where: { id: ticketId },
+            });
+        }
+        else if (role === 'PROJECT_MANAGER') {
+            ticket = await this.prisma.ticket.findFirst({
+                where: {
+                    id: ticketId,
+                    application: {
+                        projectManagerId: requesterId,
+                    },
+                },
+            });
+        }
+        else {
+            throw new common_2.NotFoundException('Non autorisé');
+        }
+        if (!ticket) {
             throw new common_2.NotFoundException('Ticket introuvable ou non autorisé');
+        }
         const updated = await this.prisma.ticket.update({
             where: { id: ticketId },
-            data: { assignedTo: supportId },
+            data: {
+                assignedTo: supportId,
+            },
+            include: {
+                assignedUser: true,
+            },
         });
         await this.prisma.notification.create({
             data: {

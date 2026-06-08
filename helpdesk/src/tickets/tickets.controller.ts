@@ -37,19 +37,24 @@ export class TicketsController {
     )
   }
 
+
+  @Roles('ADMIN', 'PROJECT_MANAGER')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/assign')
-  @UseGuards(JwtAuthGuard)
-  assign(
+  assignTicket(
     @Param('id') id: string,
-    @Body() body: { supportId: number },
+    @Body('supportId') supportId: number,
     @Req() req: any,
   ) {
     return this.ticketsService.assign(
       Number(id),
-      body.supportId,
+      supportId,
       req.user.userId,
+      req.user.role,
     )
   }
+
+
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)

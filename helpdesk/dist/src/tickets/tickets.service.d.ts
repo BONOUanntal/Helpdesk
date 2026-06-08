@@ -16,7 +16,17 @@ export declare class TicketsService {
         assignedTo: number | null;
         issueTypeId: number;
     }>;
-    assign(ticketId: number, supportId: number, requesterId: number): Promise<{
+    assign(ticketId: number, supportId: number, requesterId: number, role: string): Promise<{
+        assignedUser: {
+            id: number;
+            email: string;
+            name: string;
+            password: string;
+            role: import(".prisma/client").$Enums.UserRole;
+            createdAt: Date;
+            updatedAt: Date;
+        } | null;
+    } & {
         id: number;
         createdAt: Date;
         updatedAt: Date;

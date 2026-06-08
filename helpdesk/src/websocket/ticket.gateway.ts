@@ -171,16 +171,23 @@ export class TicketGateway {
     }
   }
 
-  @SubscribeMessage(
-  'sendWidgetFile',
-)
-async handleWidgetFile(
-  @MessageBody() data: any,
-) {
-  console.log(
-    'FILE RECEIVED'
+    @SubscribeMessage(
+    'sendWidgetFile',
   )
+  @SubscribeMessage(
+    'sendWidgetFile',
+  )
+  async handleWidgetFile(
+    @MessageBody() data: any,
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    console.log(
+      'FILE EVENT HIT'
+    )
 
-  console.log(data)
-}
+    console.log(data)
+  }
+
+
 }

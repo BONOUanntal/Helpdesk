@@ -54,9 +54,17 @@ export declare class TicketsController {
         assignedTo: number | null;
         issueTypeId: number;
     })[]>;
-    assign(id: string, body: {
-        supportId: number;
-    }, req: any): Promise<{
+    assignTicket(id: string, supportId: number, req: any): Promise<{
+        assignedUser: {
+            id: number;
+            email: string;
+            name: string;
+            password: string;
+            role: import(".prisma/client").$Enums.UserRole;
+            createdAt: Date;
+            updatedAt: Date;
+        } | null;
+    } & {
         id: number;
         createdAt: Date;
         updatedAt: Date;
