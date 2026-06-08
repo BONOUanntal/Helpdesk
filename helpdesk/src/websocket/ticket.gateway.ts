@@ -170,4 +170,17 @@ export class TicketGateway {
       )
     }
   }
+
+  @SubscribeMessage(
+  'sendWidgetFile',
+)
+async handleWidgetFile(
+  @MessageBody() data: any,
+) {
+  console.log(
+    'FILE RECEIVED'
+  )
+
+  console.log(data)
+}
 }

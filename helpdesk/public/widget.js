@@ -616,7 +616,43 @@
     renderConvList()
   }
 
-  function showChat(ticketId) {
+  async function recoverWidgetToken(
+    ticketId
+  ) {
+    try {
+      const res = await fetch(
+        `${HELPDESK_URL}/widget/ticket/recover-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+          body: JSON.stringify({
+            ticketId,
+            clientEmail:
+              CLIENT_EMAIL,
+            apiKey: API_KEY,
+          }),
+        }
+      )
+
+      if (!res.ok) return null
+
+      const data = await res.json()
+
+      return data.token
+    } catch (e) {
+      console.error(
+        'Recover token failed',
+        e
+      )
+
+      return null
+    }
+  }
+
+  async function showChat(ticketId) {
     currentTicketId = ticketId
 
     listView.style.display = 'none'
@@ -629,7 +665,23 @@
       c => c.ticketId === ticketId
     )
 
-    widgetToken = conv?.token || null
+    widgetToken =
+      conv?.token || null
+
+    // récupération auto token
+    if (!widgetToken) {
+      widgetToken =
+        await recoverWidgetToken(
+          ticketId
+        )
+
+      if (widgetToken && conv) {
+        conv.token =
+          widgetToken
+
+        saveConversations()
+      }
+    }
 
     if (conv) {
       conv.unread = 0
@@ -640,7 +692,8 @@
       'joinWidgetTicket',
       {
         ticketId,
-        clientEmail: CLIENT_EMAIL,
+        clientEmail:
+          CLIENT_EMAIL,
         apiKey: API_KEY,
       }
     )
@@ -1001,27 +1054,59 @@
   // ─────────────────────────────────────────
 
   async function uploadFile(file) {
-    const reader = new FileReader()
+  console.log(
+    'UPLOAD START',
+    file.name
+  )
 
-    reader.onload = () => {
-      socket.emit(
-        'sendWidgetFile',
-        {
-          ticketId: currentTicketId,
-          token: widgetToken,
+  console.log(
+    'SOCKET CONNECTED?',
+    socket.connected
+  )
 
-          file: {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            content: reader.result,
-          },
-        }
-      )
-    }
+  console.log(
+    'SOCKET ID',
+    socket.id
+  )
 
-    reader.readAsDataURL(file)
+  console.log(
+    'TOKEN',
+    widgetToken
+  )
+
+  const reader = new FileReader()
+
+  reader.onload = () => {
+    console.log(
+      'EMIT sendWidgetFile'
+    )
+
+    socket.emit(
+      'sendWidgetFile',
+      {
+        ticketId:
+          currentTicketId,
+        token: widgetToken,
+
+        file: {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          content:
+            reader.result,
+        },
+      }
+    )
+
+    console.log(
+      'EMIT DONE'
+    )
   }
+
+  reader.readAsDataURL(file)
+}
+
+
 
   // ─────────────────────────────────────────
   // Events

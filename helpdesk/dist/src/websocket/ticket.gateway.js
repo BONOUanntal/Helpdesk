@@ -79,6 +79,10 @@ let TicketGateway = class TicketGateway {
             });
         }
     }
+    async handleWidgetFile(data) {
+        console.log('FILE RECEIVED');
+        console.log(data);
+    }
 };
 exports.TicketGateway = TicketGateway;
 __decorate([
@@ -133,6 +137,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], TicketGateway.prototype, "handleWidgetMessage", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('sendWidgetFile'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TicketGateway.prototype, "handleWidgetFile", null);
 exports.TicketGateway = TicketGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: { origin: '*' },

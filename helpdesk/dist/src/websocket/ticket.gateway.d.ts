@@ -24,4 +24,5 @@ export declare class TicketGateway {
         content: string;
         token: string;
     }, client: Socket): Promise<void>;
+    handleWidgetFile(data: any): Promise<void>;
 }

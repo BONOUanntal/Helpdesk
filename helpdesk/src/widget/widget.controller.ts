@@ -82,6 +82,22 @@ export class WidgetController {
     return this.widgetService.sendMessage(Number(ticketId), body)
   }
 
+  @Post('ticket/recover-token')
+  async recoverToken(
+    @Body()
+    body: {
+      ticketId: number
+      clientEmail: string
+      apiKey: string
+    },
+  ) {
+    return this.widgetService.recoverToken(
+      body.ticketId,
+      body.clientEmail,
+      body.apiKey,
+    )
+  }
+
   // Récupère le ticket actif d'un client
   @Get('ticket/active')
   getActiveTicket(

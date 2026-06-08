@@ -44,6 +44,9 @@ let WidgetController = class WidgetController {
     sendMessage(ticketId, body) {
         return this.widgetService.sendMessage(Number(ticketId), body);
     }
+    async recoverToken(body) {
+        return this.widgetService.recoverToken(body.ticketId, body.clientEmail, body.apiKey);
+    }
     getActiveTicket(clientEmail, apiKey) {
         return this.widgetService.getActiveTicket(clientEmail, apiKey);
     }
@@ -85,6 +88,13 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], WidgetController.prototype, "sendMessage", null);
+__decorate([
+    (0, common_1.Post)('ticket/recover-token'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], WidgetController.prototype, "recoverToken", null);
 __decorate([
     (0, common_1.Get)('ticket/active'),
     __param(0, (0, common_1.Query)('clientEmail')),

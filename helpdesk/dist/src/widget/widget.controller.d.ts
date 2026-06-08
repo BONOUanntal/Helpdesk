@@ -45,6 +45,13 @@ export declare class WidgetController {
         fileName: string | null;
         fileType: string | null;
     }>;
+    recoverToken(body: {
+        ticketId: number;
+        clientEmail: string;
+        apiKey: string;
+    }): Promise<{
+        token: string;
+    }>;
     getActiveTicket(clientEmail: string, apiKey: string): Promise<{
         ticketId: null;
         widgetToken?: undefined;

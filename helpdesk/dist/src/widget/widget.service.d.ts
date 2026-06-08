@@ -9,6 +9,9 @@ export declare class WidgetService {
     private ticketGateway;
     constructor(prisma: PrismaService, mailService: MailService, jwtService: JwtService, ticketGateway: TicketGateway);
     private verifyApiKey;
+    recoverToken(ticketId: number, clientEmail: string, apiKey: string): Promise<{
+        token: string;
+    }>;
     private findOrCreateClient;
     createTicket(data: {
         apiKey: string;

@@ -36,7 +36,47 @@ export class WidgetService {
       }
 
       return application
+  }
+
+  async recoverToken(
+    ticketId: number,
+    clientEmail: string,
+    apiKey: string,
+  ) {
+    const ticket =
+      await this.prisma.ticket.findFirst({
+        where: {
+          id: ticketId,
+
+          client: {
+            email: clientEmail,
+          },
+
+          application: {
+            apiKey: apiKey,
+          },
+        },
+      })
+
+    if (!ticket) {
+      throw new UnauthorizedException(
+        'Ticket introuvable',
+      )
     }
+
+    const token = this.jwtService.sign(
+      {
+        ticketId,
+        clientEmail,
+      },
+      {
+        secret: 'secret123',
+        expiresIn: '30d',
+      },
+    )
+
+    return { token }
+  }
 
 
   private async findOrCreateClient(

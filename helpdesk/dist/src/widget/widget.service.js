@@ -38,6 +38,30 @@ let WidgetService = class WidgetService {
         }
         return application;
     }
+    async recoverToken(ticketId, clientEmail, apiKey) {
+        const ticket = await this.prisma.ticket.findFirst({
+            where: {
+                id: ticketId,
+                client: {
+                    email: clientEmail,
+                },
+                application: {
+                    apiKey: apiKey,
+                },
+            },
+        });
+        if (!ticket) {
+            throw new common_1.UnauthorizedException('Ticket introuvable');
+        }
+        const token = this.jwtService.sign({
+            ticketId,
+            clientEmail,
+        }, {
+            secret: 'secret123',
+            expiresIn: '30d',
+        });
+        return { token };
+    }
     async findOrCreateClient(email, name, applicationId) {
         let client = await this.prisma.client.findFirst({
             where: {
