@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
+const ALLOWED_ROLES = ['ADMIN', 'PROJECT_MANAGER', 'SUPPORT']
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
@@ -43,10 +44,16 @@ export class UsersService {
   }
 
   async addRole(userId: number, role: string) {
+    const normalizedRole = role.toUpperCase()
+
+    if (!ALLOWED_ROLES.includes(normalizedRole)) {
+      throw new Error(`Rôle invalide: ${role}`)
+    }
+
     return this.prisma.userRoleAssignment.create({
       data: {
         userId,
-        role: role as any,
+        role: normalizedRole as any,
       },
     })
   }

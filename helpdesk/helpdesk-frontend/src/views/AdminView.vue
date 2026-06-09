@@ -860,7 +860,6 @@ function logout() {
                       <option value="ADMIN">ADMIN</option>
                       <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
                       <option value="SUPPORT">SUPPORT</option>
-                      <option value="CLIENT">CLIENT</option>
                     </select>
                   </td>
                 </tr>

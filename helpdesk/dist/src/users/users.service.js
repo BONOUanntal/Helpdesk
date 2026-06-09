@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const ALLOWED_ROLES = ['ADMIN', 'PROJECT_MANAGER', 'SUPPORT'];
 let UsersService = class UsersService {
     prisma;
     constructor(prisma) {
@@ -51,10 +52,14 @@ let UsersService = class UsersService {
         return this.prisma.user.delete({ where: { id } });
     }
     async addRole(userId, role) {
+        const normalizedRole = role.toUpperCase();
+        if (!ALLOWED_ROLES.includes(normalizedRole)) {
+            throw new Error(`Rôle invalide: ${role}`);
+        }
         return this.prisma.userRoleAssignment.create({
             data: {
                 userId,
-                role: role,
+                role: normalizedRole,
             },
         });
     }
