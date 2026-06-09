@@ -45,6 +45,10 @@ const supports = ref<any[]>([])
     }
   }
 
+  const staffUsers = computed(() => {
+    return users.value.filter((u: any) => u.role !== 'CLIENT')
+  })
+
   async function assignTicket(
     ticketId: number,
     supportId: number
@@ -827,7 +831,7 @@ function logout() {
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-slate-200">
-                <tr v-for="u in users" :key="u.id" class="hover:bg-gray-50 transition-colors">
+                <tr v-for="u in staffUsers" :key="u.id" class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">#{{ u.id }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ u.name }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ u.email }}</td>
@@ -860,7 +864,7 @@ function logout() {
                     </select>
                   </td>
                 </tr>
-                <tr v-if="users.length === 0">
+                <tr v-if="staffUsers.length === 0">
                   <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">Aucun utilisateur</td>
                 </tr>
               </tbody>
