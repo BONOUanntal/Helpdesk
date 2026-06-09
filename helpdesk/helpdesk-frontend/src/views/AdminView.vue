@@ -334,8 +334,6 @@ async function updateTicketPriority(
   }
 }
 
-
-
 function logout() {
   localStorage.clear()
   router.push('/login')
@@ -613,12 +611,21 @@ function logout() {
                     </span>
                   </td>
 
-                  <!-- Assignation (readonly) -->
-                  <td class="px-6 py-5 whitespace-nowrap text-sm text-slate-500">
-                    {{
-                      t.assignedTo?.name
-                        ?? '— Non assigné —'
-                    }}
+                  <!-- Assignation -->
+                  <td class="px-6 py-5 whitespace-nowrap">
+                    <span
+                      v-if="t.assignedUser"
+                      class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700"
+                    >
+                      Assigné à {{ t.assignedUser.name }}
+                    </span>
+
+                    <span
+                      v-else
+                      class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700"
+                    >
+                      Non assigné
+                    </span>
                   </td>
 
                   <!-- Actions -->
