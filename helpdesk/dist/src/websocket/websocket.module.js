@@ -11,6 +11,8 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const ticket_gateway_1 = require("./ticket.gateway");
 const messages_module_1 = require("../messages/messages.module");
+const prisma_module_1 = require("../prisma/prisma.module");
+const mail_module_1 = require("../mail/mail.module");
 let WebsocketModule = class WebsocketModule {
 };
 exports.WebsocketModule = WebsocketModule;
@@ -21,6 +23,8 @@ exports.WebsocketModule = WebsocketModule = __decorate([
             jwt_1.JwtModule.register({
                 secret: 'secret123',
             }),
+            prisma_module_1.PrismaModule,
+            mail_module_1.MailModule,
         ],
         providers: [ticket_gateway_1.TicketGateway],
         exports: [ticket_gateway_1.TicketGateway],
