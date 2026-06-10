@@ -48,4 +48,12 @@ export declare class TicketGateway {
             content: string;
         };
     }, client: Socket): Promise<void>;
+    handleDeleteMessage(data: {
+        messageId: number;
+        token: string;
+    }, client: Socket): Promise<void>;
+    handleDeleteWidgetMessage(data: {
+        messageId: number;
+        token: string;
+    }, client: Socket): Promise<void>;
 }

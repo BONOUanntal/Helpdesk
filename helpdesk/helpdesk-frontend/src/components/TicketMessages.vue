@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Send, Paperclip } from 'lucide-vue-next'
+import { Send, Paperclip, Trash2 } from 'lucide-vue-next'
 import { io } from 'socket.io-client'
 
 const props = defineProps<{ ticketId: number | null }>()
 
 const token = localStorage.getItem('token')
+
+// Décode le payload JWT (sans vérification de signature, la sécurité est gérée côté serveur)
+function decodeToken(t: string | null) {
+  if (!t) return null
+  try { return JSON.parse(atob(t.split('.')[1])) } catch { return null }
+}
+const currentUser = decodeToken(token) as { userId: number; role: string } | null
+
 const messages = ref<any[]>([])
 const newMessage = ref('')
 const loading = ref(false)
@@ -82,6 +90,11 @@ function handleFileUpload(event: Event) {
   target.value = ''
 }
 
+function deleteMessage(messageId: number) {
+  if (!confirm('Supprimer ce message ?')) return
+  socket.emit('deleteMessage', { messageId, token })
+}
+
 // Reçoit l'historique quand on rejoint une room
 socket.on('messageHistory', (history: any[]) => {
   console.log('messageHistory reçu:', history.length, 'messages')
@@ -99,6 +112,10 @@ socket.on('ticket:newMessage', (message: any) => {
   }
 })
 
+// Message supprimé en temps réel
+socket.on('ticket:messageDeleted', ({ messageId }: { messageId: number }) => {
+  messages.value = messages.value.filter((m: any) => m.id !== messageId)
+})
 
 socket.on('error', (err: any) => {
   console.error('Socket error:', err)
@@ -142,8 +159,18 @@ onUnmounted(() => {
         v-for="msg in messages"
         :key="msg.id"
         :class="msg.senderType === 'CLIENT' ? 'justify-start' : 'justify-end'"
-        class="flex"
+        class="flex group"
       >
+        <!-- Bouton supprimer (côté gauche pour les messages CLIENT) -->
+        <button
+          v-if="msg.senderType === 'CLIENT' && currentUser?.role === 'ADMIN'"
+          @click="deleteMessage(msg.id)"
+          class="opacity-0 group-hover:opacity-100 mr-2 self-start mt-2 text-red-400 hover:text-red-600 transition-opacity"
+          title="Supprimer"
+        >
+          <Trash2 class="w-3.5 h-3.5" />
+        </button>
+
         <div
           :class="msg.senderType === 'CLIENT'
             ? 'bg-slate-100 text-slate-800'
@@ -169,6 +196,20 @@ onUnmounted(() => {
             {{ new Date(msg.createdAt).toLocaleString('fr-FR') }}
           </p>
         </div>
+
+        <!-- Bouton supprimer (côté droit pour les messages support/PM/admin) -->
+        <!-- ADMIN : peut tout supprimer ; PM/SUPPORT : seulement leurs propres messages -->
+        <button
+          v-if="msg.senderType !== 'CLIENT' && (
+            currentUser?.role === 'ADMIN' ||
+            msg.senderId === currentUser?.userId
+          )"
+          @click="deleteMessage(msg.id)"
+          class="opacity-0 group-hover:opacity-100 ml-2 self-start mt-2 text-red-300 hover:text-red-500 transition-opacity"
+          title="Supprimer"
+        >
+          <Trash2 class="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
 

@@ -811,6 +811,26 @@
           `
           : ''
 
+        // Bouton supprimer seulement pour les messages du client
+        const deleteBtn = m.senderType === 'CLIENT'
+          ? `<button
+              class="hd-delete-btn"
+              data-message-id="${m.id}"
+              style="
+                background:none;
+                border:none;
+                cursor:pointer;
+                color:#ef4444;
+                font-size:11px;
+                padding:2px 4px;
+                margin-top:4px;
+                opacity:0.6;
+                display:block;
+              "
+              title="Supprimer ce message"
+            >✕ Supprimer</button>`
+          : ''
+
         return `
           <div class="hd-msg ${
             m.senderType === 'CLIENT'
@@ -833,10 +853,24 @@
                 }
               )}
             </div>
+
+            ${deleteBtn}
           </div>
         `
       })
       .join('')
+
+    // Délégation des clics sur les boutons supprimer
+    messagesEl.querySelectorAll('.hd-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const messageId = Number(btn.getAttribute('data-message-id'))
+        if (!confirm('Supprimer ce message ?')) return
+        socket.emit('deleteWidgetMessage', {
+          messageId,
+          token: widgetToken,
+        })
+      })
+    })
 
     requestAnimationFrame(() => {
       messagesEl.scrollTop =
@@ -1240,6 +1274,14 @@
       renderMessages(filtered)
     }
   )
+
+  // Message supprimé en temps réel
+  socket.on('ticket:messageDeleted', ({ messageId }) => {
+    window.__ticketMessages = (window.__ticketMessages || []).filter(
+      m => m.id !== messageId
+    )
+    renderMessages(window.__ticketMessages)
+  })
 
   // ─────────────────────────────────────────
   // Create ticket

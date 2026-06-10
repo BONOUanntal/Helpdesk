@@ -302,6 +302,89 @@ let TicketGateway = class TicketGateway {
             client.emit('error', { message: 'Failed to upload file' });
         }
     }
+    async handleDeleteMessage(data, client) {
+        try {
+            const payload = this.jwtService.verify(data.token, { secret: 'secret123' });
+            const role = payload.role;
+            const userId = payload.userId;
+            if (!['ADMIN', 'PROJECT_MANAGER', 'SUPPORT'].includes(role)) {
+                client.emit('error', { message: 'Non autorisé' });
+                return;
+            }
+            const message = await this.prismaService.message.findUnique({
+                where: { id: data.messageId },
+            });
+            if (!message) {
+                client.emit('error', { message: 'Message introuvable' });
+                return;
+            }
+            if (role !== 'ADMIN' && message.senderId !== userId) {
+                client.emit('error', { message: 'Vous ne pouvez supprimer que vos propres messages' });
+                return;
+            }
+            if (message.fileUrl) {
+                const filepath = path.join('.', message.fileUrl);
+                if (fs.existsSync(filepath)) {
+                    fs.unlinkSync(filepath);
+                }
+            }
+            await this.prismaService.attachment.deleteMany({
+                where: { messageId: message.id },
+            });
+            await this.prismaService.message.delete({
+                where: { id: message.id },
+            });
+            this.server
+                .to(`ticket:${message.ticketId}`)
+                .emit('ticket:messageDeleted', { messageId: message.id });
+        }
+        catch (e) {
+            console.error('Error during deleteMessage:', e.message);
+            client.emit('error', { message: 'Échec de la suppression' });
+        }
+    }
+    async handleDeleteWidgetMessage(data, client) {
+        try {
+            const payload = this.jwtService.verify(data.token, { secret: 'secret123' });
+            const clientEmail = payload.clientEmail;
+            const message = await this.prismaService.message.findUnique({
+                where: { id: data.messageId },
+                include: {
+                    ticket: {
+                        include: { client: true },
+                    },
+                },
+            });
+            if (!message) {
+                client.emit('error', { message: 'Message introuvable' });
+                return;
+            }
+            if (message.senderType !== 'CLIENT' ||
+                message.ticket.client.email !== clientEmail) {
+                client.emit('error', { message: 'Non autorisé' });
+                return;
+            }
+            if (message.fileUrl) {
+                const filepath = path.join('.', message.fileUrl);
+                if (fs.existsSync(filepath)) {
+                    fs.unlinkSync(filepath);
+                }
+            }
+            await this.prismaService.attachment.deleteMany({
+                where: { messageId: message.id },
+            });
+            await this.prismaService.message.delete({
+                where: { id: message.id },
+            });
+            this.server
+                .to(`ticket:${message.ticketId}`)
+                .emit('ticket:messageDeleted', { messageId: message.id });
+        }
+        catch (e) {
+            console.error('Error during deleteWidgetMessage:', e.message);
+            client.emit('error', { message: 'Échec de la suppression' });
+        }
+    }
 };
 exports.TicketGateway = TicketGateway;
 __decorate([
@@ -372,6 +455,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
     __metadata("design:returntype", Promise)
 ], TicketGateway.prototype, "handleFile", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('deleteMessage'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], TicketGateway.prototype, "handleDeleteMessage", null);
+__decorate([
+    (0, websockets_1.SubscribeMessage)('deleteWidgetMessage'),
+    __param(0, (0, websockets_1.MessageBody)()),
+    __param(1, (0, websockets_1.ConnectedSocket)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, socket_io_1.Socket]),
+    __metadata("design:returntype", Promise)
+], TicketGateway.prototype, "handleDeleteWidgetMessage", null);
 exports.TicketGateway = TicketGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: { origin: '*' },

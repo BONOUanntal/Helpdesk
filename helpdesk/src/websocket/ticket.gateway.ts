@@ -419,4 +419,133 @@ export class TicketGateway {
     }
   }
 
+  // =========================
+  // DELETE MESSAGE (backoffice : Admin / PM / Support)
+  // =========================
+
+  @SubscribeMessage('deleteMessage')
+  async handleDeleteMessage(
+    @MessageBody() data: { messageId: number; token: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const payload = this.jwtService.verify(data.token, { secret: 'secret123' })
+      const role = payload.role
+      const userId = payload.userId
+
+      if (!['ADMIN', 'PROJECT_MANAGER', 'SUPPORT'].includes(role)) {
+        client.emit('error', { message: 'Non autorisé' })
+        return
+      }
+
+      const message = await this.prismaService.message.findUnique({
+        where: { id: data.messageId },
+      })
+
+      if (!message) {
+        client.emit('error', { message: 'Message introuvable' })
+        return
+      }
+
+      // PM et SUPPORT ne peuvent supprimer que leurs propres messages
+      // ADMIN peut supprimer n'importe quel message
+      if (role !== 'ADMIN' && message.senderId !== userId) {
+        client.emit('error', { message: 'Vous ne pouvez supprimer que vos propres messages' })
+        return
+      }
+
+      // Supprimer le fichier physique si présent
+      if (message.fileUrl) {
+        const filepath = path.join('.', message.fileUrl)
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath)
+        }
+      }
+
+      // Supprimer les pièces jointes associées
+      await this.prismaService.attachment.deleteMany({
+        where: { messageId: message.id },
+      })
+
+      // Supprimer le message
+      await this.prismaService.message.delete({
+        where: { id: message.id },
+      })
+
+      // Notifier tous les clients de la room
+      this.server
+        .to(`ticket:${message.ticketId}`)
+        .emit('ticket:messageDeleted', { messageId: message.id })
+
+    } catch (e) {
+      console.error('Error during deleteMessage:', e.message)
+      client.emit('error', { message: 'Échec de la suppression' })
+    }
+  }
+
+  // =========================
+  // DELETE WIDGET MESSAGE (client)
+  // =========================
+
+  @SubscribeMessage('deleteWidgetMessage')
+  async handleDeleteWidgetMessage(
+    @MessageBody() data: { messageId: number; token: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const payload = this.jwtService.verify(data.token, { secret: 'secret123' })
+      const clientEmail = payload.clientEmail
+
+      const message = await this.prismaService.message.findUnique({
+        where: { id: data.messageId },
+        include: {
+          ticket: {
+            include: { client: true },
+          },
+        },
+      })
+
+      if (!message) {
+        client.emit('error', { message: 'Message introuvable' })
+        return
+      }
+
+      // Vérifier que le message appartient bien au client authentifié
+      if (
+        message.senderType !== 'CLIENT' ||
+        message.ticket.client.email !== clientEmail
+      ) {
+        client.emit('error', { message: 'Non autorisé' })
+        return
+      }
+
+      // Supprimer le fichier physique si présent
+      if (message.fileUrl) {
+        const filepath = path.join('.', message.fileUrl)
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath)
+        }
+      }
+
+      // Supprimer les pièces jointes associées
+      await this.prismaService.attachment.deleteMany({
+        where: { messageId: message.id },
+      })
+
+      // Supprimer le message
+      await this.prismaService.message.delete({
+        where: { id: message.id },
+      })
+
+      // Notifier tous les clients de la room
+      this.server
+        .to(`ticket:${message.ticketId}`)
+        .emit('ticket:messageDeleted', { messageId: message.id })
+
+    } catch (e) {
+      console.error('Error during deleteWidgetMessage:', e.message)
+      client.emit('error', { message: 'Échec de la suppression' })
+    }
+  }
+
 }
