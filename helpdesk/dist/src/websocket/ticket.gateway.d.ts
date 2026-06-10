@@ -38,4 +38,14 @@ export declare class TicketGateway {
             content: string;
         };
     }, client: Socket): Promise<void>;
+    handleFile(data: {
+        ticketId: number;
+        token: string;
+        file: {
+            name: string;
+            type: string;
+            size: number;
+            content: string;
+        };
+    }, client: Socket): Promise<void>;
 }

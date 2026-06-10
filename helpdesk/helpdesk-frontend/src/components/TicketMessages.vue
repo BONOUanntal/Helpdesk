@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Send } from 'lucide-vue-next'
+import { Send, Paperclip } from 'lucide-vue-next'
 import { io } from 'socket.io-client'
 
 const props = defineProps<{ ticketId: number | null }>()
@@ -45,6 +45,41 @@ function sendMessage() {
 
   newMessage.value = ''
   loading.value = false
+}
+
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function triggerFileInput() {
+  fileInput.value?.click()
+}
+
+function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file || !props.ticketId) return
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert('Le fichier dépasse la limite de 2MB.')
+    return
+  }
+
+  loading.value = true
+  const reader = new FileReader()
+  reader.onload = () => {
+    socket.emit('sendFile', {
+      ticketId: props.ticketId,
+      token,
+      file: {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        content: reader.result,
+      },
+    })
+    loading.value = false
+  }
+  reader.readAsDataURL(file)
+  target.value = ''
 }
 
 // Reçoit l'historique quand on rejoint une room
@@ -138,6 +173,21 @@ onUnmounted(() => {
     </div>
 
     <div class="flex gap-2 border-t pt-4">
+      <input
+        type="file"
+        ref="fileInput"
+        @change="handleFileUpload"
+        class="hidden"
+      />
+      <button
+        @click="triggerFileInput"
+        :disabled="loading"
+        type="button"
+        class="flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 p-2.5 rounded-xl transition disabled:opacity-50"
+        title="Ajouter un fichier"
+      >
+        <Paperclip class="w-4 h-4" />
+      </button>
       <input
         v-model="newMessage"
         @keyup.enter="sendMessage"

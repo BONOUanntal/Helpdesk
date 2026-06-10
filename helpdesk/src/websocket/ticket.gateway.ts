@@ -320,5 +320,103 @@ export class TicketGateway {
     }
   }
 
+  @SubscribeMessage('sendFile')
+  async handleFile(
+    @MessageBody()
+    data: {
+      ticketId: number
+      token: string
+      file: {
+        name: string
+        type: string
+        size: number
+        content: string
+      }
+    },
+    @ConnectedSocket()
+    client: Socket,
+  ) {
+    console.log('FILE EVENT HIT FOR BACKOFFICE', data?.file?.name)
+    try {
+      const payload = this.jwtService.verify(data.token, {
+        secret: 'secret123',
+      })
+      const userId = payload.userId
+      const role = payload.role
+
+      if (!['ADMIN', 'PROJECT_MANAGER', 'SUPPORT'].includes(role)) {
+        client.emit('error', { message: 'Non autorisé' })
+        return
+      }
+
+      const ticket = await this.prismaService.ticket.findUnique({
+        where: { id: data.ticketId },
+        include: {
+          client: true,
+          application: {
+            include: {
+              projectManager: true,
+            },
+          },
+        },
+      })
+
+      if (!ticket) {
+        client.emit('error', { message: 'Ticket non trouvé' })
+        return
+      }
+
+      let base64Data = data.file.content
+      if (base64Data.indexOf(';base64,') !== -1) {
+        base64Data = base64Data.split(';base64,').pop() || ''
+      }
+      const buffer = Buffer.from(base64Data, 'base64')
+
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+      const ext = path.extname(data.file.name).toLowerCase()
+      const filename = `${uniqueSuffix}${ext}`
+      const filepath = path.join('./uploads', filename)
+
+      if (!fs.existsSync('./uploads')) {
+        fs.mkdirSync('./uploads', { recursive: true })
+      }
+
+      fs.writeFileSync(filepath, buffer)
+
+      const message = await this.prismaService.message.create({
+        data: {
+          ticketId: data.ticketId,
+          senderId: userId,
+          senderType: role,
+          content: data.file.name,
+          fileUrl: `/uploads/${filename}`,
+          fileName: data.file.name,
+          fileType: data.file.type,
+        },
+      })
+
+      this.server
+        .to(`ticket:${data.ticketId}`)
+        .emit('ticket:newMessage', message)
+
+      if (ticket.client.email) {
+        const clientUser = await this.prismaService.user.findFirst({
+          where: { email: ticket.client.email },
+        })
+        if (clientUser) {
+          await this.prismaService.notification.create({
+            data: {
+              userId: clientUser.id,
+              ticketId: ticket.id,
+              type: 'NEW_MESSAGE',
+            },
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Error during sendFile:', e.message)
+      client.emit('error', { message: 'Failed to upload file' })
+    }
+  }
 
 }
